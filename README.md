@@ -3,6 +3,8 @@ Documenting RenewedVision's undocumented Remote Control protocol with examples
 
 The ProPresenter Remote Control protocol is an unencrypted text-based websocket connection from the client to the ProPresenter instance.
 
+This document refers to *ProPresenter 6*.
+
 ## Connecting
 
 ```javascript
