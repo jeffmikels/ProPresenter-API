@@ -1,0 +1,327 @@
+<html>
+	<head>
+		<title>ProRemote</title>
+		<script>
+			var socket;
+			var host = '192.168.10.50';
+			var port = '50245';
+			var password = 'control';
+			var slideIndex;
+			var activePresentation;
+			var activePlaylist;
+			var playlists;
+			var controlling = false;
+			var libraries = [];
+			
+			function err(s)
+			{
+				document.getElementById('errbox').innerHTML = s;
+				return false;
+			}
+			
+			function check_socket()
+			{
+				if (!socket) return err('SOCKET NOT CONNECTED');
+				if (socket.readyState != 1) return err('SOCKET NOT READY');
+				return true;
+			}
+			
+			function setup()
+			{
+				connect();
+				listen();
+			}
+			
+			function connect()
+			{
+				socket = new WebSocket(`ws://${host}:${port}/remote`);
+				listen();
+			}
+			
+			function listen()
+			{
+				socket.onmessage = function(event) {
+					var msg = JSON.parse(event.data);
+					console.log(msg);
+					
+					switch(msg.action) {
+						case "authenticate":
+							controlling = (msg.controller == 1);
+							text = "(" + timeStr + ") <b>" + msg.name + "</b>: " + msg.text + "<br>";
+							break;
+						case "libraryRequest":
+							libraries = msg.library;
+							break;
+						case "playlistRequestAll":
+							playlists = msg.playlistAll;
+							break;
+						case "presentationSlideIndex":
+							slideIndex = msg.slideIndex;
+							break;
+						case "presentationTriggerIndex":
+							slideIndex = msg.slideIndex;
+							activePresentation = msg.presentationPath;
+							for (i=0; i < msg.users.length; i++) {
+								ul += msg.users[i] + "<br>";
+							}
+							document.getElementById("userlistbox").innerHTML = ul;
+							break;
+					}
+				}
+			}
+			
+			function emit(obj)
+			{
+				var json = JSON.stringify(obj);
+				if (check_socket()) socket.send(json);
+				else return err('SOCKET EMIT FAILED');
+			}
+			
+			function authenticate()
+			{
+				emit({
+					action: 'authenticate',
+					protocol: '600',
+					password: password
+				});
+			}
+			
+			function get_libraries()
+			{
+				emit({
+					action: 'libraryRequest'
+				})
+			}
+			
+			function get_playlists()
+			{
+				emit({
+					action: 'playlistRequestAll'
+				});
+			}
+			
+			function get_playlist()
+			{
+				
+			}
+			
+			function get_presentation(name, path)
+			{
+				emit({
+					"action": "presentationRequest",
+					"presentationName": name,
+					"presentationPath": path,
+					"presentationSlideQuality": 25
+				});
+			}
+			
+			function get_slide()
+			{
+				emit({"action":"presentationSlideIndex"});
+			}
+			
+			function trigger_slide(n)
+			{
+				emit({'action':'presentationTriggerIndex','slideIndex':n});
+			}
+			
+			/*
+				1. connect to the websocket
+					ws://[host]:[port]/remote
+				2. authenticate as controller
+					SEND: {"action":"authenticate","protocol":"600","password":"control"}
+					RECEIVE: {"controller":1,"authenticated":1,"error":"","action":"authenticate"}
+				3. get library
+					SEND: {"action":"libraryRequest"}
+					RECEIVE: {"library":[array of pathnames],"action":"libraryRequest"}
+				4. get playlists
+					SEND: {"action":"playlistRequestAll"}
+					RECEIVE:
+						{
+							"playlistAll": [
+								{
+									"playlistLocation": "0",
+									"playlistType": "playlistTypePlaylist",
+									"playlistName": "Testing",
+									"playlist": [
+
+									]
+								},
+								{
+									"playlistLocation": "1",
+									"playlistType": "playlistTypePlaylist",
+									"playlistName": "Default",
+									"playlist": [
+										{
+											"playlistItemName": "All creatures of our God and King ` All creatures of our God",
+											"playlistItemLocation": "1:0",
+											"playlistItemType": "playlistItemTypePresentation"
+										},
+										{
+											"playlistItemName": "A Mighty Fortress is Our God",
+											"playlistItemLocation": "1:1",
+											"playlistItemType": "playlistItemTypePresentation"
+										}
+									]
+								},
+								{
+									"playlistLocation": "2",
+									"playlistType": "playlistTypeGroup",
+									"playlistName": "TEAMM",
+									"playlist": [
+
+									]
+								},
+								{
+									"playlistLocation": "3",
+									"playlistType": "playlistTypePlaylist",
+									"playlistName": "2013-06-16 Mission Lafayette",
+									"playlist": [
+										{
+											"playlistItemName": "Our God",
+											"playlistItemLocation": "3:0",
+											"playlistItemType": "playlistItemTypePresentation"
+										},
+										{
+											"playlistItemName": "To Our God",
+											"playlistItemLocation": "3:1",
+											"playlistItemType": "playlistItemTypePresentation"
+										},
+										{
+											"playlistItemName": "Salvation Is Here",
+											"playlistItemLocation": "3:2",
+											"playlistItemType": "playlistItemTypePresentation"
+										},
+										{
+											"playlistItemName": "Scandal of Grace",
+											"playlistItemLocation": "3:3",
+											"playlistItemType": "playlistItemTypePresentation"
+										},
+										{
+											"playlistItemName": "Came to My Rescue ` Falling on my knees in worship Giving al",
+											"playlistItemLocation": "3:4",
+											"playlistItemType": "playlistItemTypePresentation"
+										},
+										{
+											"playlistItemName": "From the Inside Out",
+											"playlistItemLocation": "3:5",
+											"playlistItemType": "playlistItemTypePresentation"
+										},
+										{
+											"playlistItemName": "Burning Ones",
+											"playlistItemLocation": "3:6",
+											"playlistItemType": "playlistItemTypePresentation"
+										},
+										{
+											"playlistItemName": "HOSANNA",
+											"playlistItemLocation": "3:7",
+											"playlistItemType": "playlistItemTypePresentation"
+										},
+										{
+											"playlistItemName": "Take Heart ` There is a light It burns brighter than the sun",
+											"playlistItemLocation": "3:8",
+											"playlistItemType": "playlistItemTypePresentation"
+										},
+										{
+											"playlistItemName": "One Thing Remains",
+											"playlistItemLocation": "3:9",
+											"playlistItemType": "playlistItemTypePresentation"
+										},
+										{
+											"playlistItemName": "How He Loves ` He is jealous for me,  Loves like a hurricane",
+											"playlistItemLocation": "3:10",
+											"playlistItemType": "playlistItemTypePresentation"
+										},
+										{
+											"playlistItemName": "For the Sake of the World",
+											"playlistItemLocation": "3:11",
+											"playlistItemType": "playlistItemTypePresentation"
+										}
+									]
+								}
+							],
+							"action": "playlistRequestAll"
+						}
+				5. Request Presentation
+					SEND:
+						{
+							"action": "presentationRequest",
+							"presentationName": "10,000 Reasons (Bless The Lord)",
+							"presentationPath": "/Volumes/Jeff/Documents/ProPresenter6/10,000 Reasons (Bless The Lord).pro6",
+							"presentationSlideQuality": 25
+						}
+					RECEIVE:
+						{
+							"action": "presentationCurrent",
+							"presentation": {
+								"presentationSlideGroups": [
+									{
+										"groupName": "Title",
+										"groupColor": "0 0 0 1",
+										"groupSlides": [
+											{
+												"slideEnabled": true,
+												"slideNotes": "",
+												"slideAttachmentMask": 0,
+												"slideText": "10,000 Reasons\nPsalms 103",
+												"slideImage": "/9j/4AAQSkZJRgABAQAASABIAAD/4QB0RXhpZgAATU0AKgAAAAgABAEaAAUAAAABAAAAPgEbAAUAAAABAAAARgEoAAMAAAABAAIAAIdpAAQAAAABAAAATgAAAAAAAABIAAAAAQAABwAAAAAZAAKgAgAEAAAAAQAAABmgAwAEAAAAAQAAAA4AAAAA/+0AOFBob3Rvc2hvcCAzLjAAOEJJTQQEAAAAAAAAOEJJTQQlAAAAAAAQ1B2M2Y8AsgTpgAmY7PhCfv/iB+hJQ0NfUFJPRklMRQABAQAAB9hhcHBsAiAAAG1udHJSR0IgWFlaIAfZAAIAGQALABoAC2Fjc3BBUFBMAAAAAGFwcGwAAAAAAAAAAAAAAAAAAAAAAAD21gABAAAAANMtYXBwbAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAC2Rlc2MAAAEIAAAAb2RzY20AAAF4AAAFnGNwcnQAAAcUAAAAOHd0cHQAAAdMAAAAFHJYWVoAAAdgAAAAFGdYWVoAAAd0AAAAFGJYWVoAAAeIAAAAFHJUUkMAAAecAAAADmNoYWQAAAesAAAALGJUUkMAAAecAAAADmdUUkMAAAecAAAADmRlc2MAAAAAAAAAFEdlbmVyaWMgUkdCIFByb2ZpbGUAAAAAAAAAAAAAABRHZW5lcmljIFJHQiBQcm9maWxlAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABtbHVjAAAAAAAAAB8AAAAMc2tTSwAAACgAAAGEZGFESwAAAC4AAAGsY2FFUwAAACQAAAHadmlWTgAAACQAAAH+cHRCUgAAACYAAAIidWtVQQAAACoAAAJIZnJGVQAAACgAAAJyaHVIVQAAACgAAAKaemhUVwAAABYAAALCbmJOTwAAACYAAALYY3NDWgAAACIAAAL+aGVJTAAAAB4AAAMgaXRJVAAAACgAAAM+cm9STwAAACQAAANmZGVERQAAACwAAAOKa29LUgAAABYAAAO2c3ZTRQAAACYAAALYemhDTgAAABYAAAPMamFKUAAAABoAAAPiZWxHUgAAACIAAAP8cHRQTwAAACYAAAQebmxOTAAAACgAAAREZXNFUwAAACYAAAQedGhUSAAAACQAAARsdHJUUgAAACIAAASQZmlGSQAAACgAAASyaHJIUgAAACgAAATacGxQTAAAACwAAAUCcnVSVQAAACIAAAUuYXJFRwAAACYAAAVQZW5VUwAAACYAAAV2AFYBYQBlAG8AYgBlAGMAbgD9ACAAUgBHAEIAIABwAHIAbwBmAGkAbABHAGUAbgBlAHIAZQBsACAAUgBHAEIALQBiAGUAcwBrAHIAaQB2AGUAbABzAGUAUABlAHIAZgBpAGwAIABSAEcAQgAgAGcAZQBuAOgAcgBpAGMAQx6lAHUAIABoAOwAbgBoACAAUgBHAEIAIABDAGgAdQBuAGcAUABlAHIAZgBpAGwAIABSAEcAQgAgAEcAZQBuAOkAcgBpAGMAbwQXBDAEMwQwBDsETAQ9BDgEOQAgBD8EQAQ+BEQEMAQ5BDsAIABSAEcAQgBQAHIAbwBmAGkAbAAgAGcA6QBuAOkAcgBpAHEAdQBlACAAUgBWAEIAwQBsAHQAYQBsAOEAbgBvAHMAIABSAEcAQgAgAHAAcgBvAGYAaQBskBp1KAAgAFIARwBCACCCcl9pY8+P8ABHAGUAbgBlAHIAaQBzAGsAIABSAEcAQgAtAHAAcgBvAGYAaQBsAE8AYgBlAGMAbgD9ACAAUgBHAEIAIABwAHIAbwBmAGkAbAXkBegF1QXkBdkF3AAgAFIARwBCACAF2wXcBdwF2QBQAHIAbwBmAGkAbABvACAAUgBHAEIAIABnAGUAbgBlAHIAaQBjAG8AUAByAG8AZgBpAGwAIABSAEcAQgAgAGcAZQBuAGUAcgBpAGMAQQBsAGwAZwBlAG0AZQBpAG4AZQBzACAAUgBHAEIALQBQAHIAbwBmAGkAbMd8vBgAIABSAEcAQgAg1QS4XNMMx3xmbpAaACAAUgBHAEIAIGPPj/Blh072TgCCLAAgAFIARwBCACAw1zDtMNUwoTCkMOsDkwO1A70DuQO6A8wAIAPAA8EDvwPGA68DuwAgAFIARwBCAFAAZQByAGYAaQBsACAAUgBHAEIAIABnAGUAbgDpAHIAaQBjAG8AQQBsAGcAZQBtAGUAZQBuACAAUgBHAEIALQBwAHIAbwBmAGkAZQBsDkIOGw4jDkQOHw4lDkwAIABSAEcAQgAgDhcOMQ5IDicORA4bAEcAZQBuAGUAbAAgAFIARwBCACAAUAByAG8AZgBpAGwAaQBZAGwAZQBpAG4AZQBuACAAUgBHAEIALQBwAHIAbwBmAGkAaQBsAGkARwBlAG4AZQByAGkBDQBrAGkAIABSAEcAQgAgAHAAcgBvAGYAaQBsAFUAbgBpAHcAZQByAHMAYQBsAG4AeQAgAHAAcgBvAGYAaQBsACAAUgBHAEIEHgQxBEkEOAQ5ACAEPwRABD4ERAQ4BDsETAAgAFIARwBCBkUGRAZBACAGKgY5BjEGSgZBACAAUgBHAEIAIAYnBkQGOQYnBkUARwBlAG4AZQByAGkAYwAgAFIARwBCACAAUAByAG8AZgBpAGwAZXRleHQAAAAAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC4AWFlaIAAAAAAAAPNSAAEAAAABFs9YWVogAAAAAAAAdE0AAD3uAAAD0FhZWiAAAAAAAABadQAArHMAABc0WFlaIAAAAAAAACgaAAAVnwAAuDZjdXJ2AAAAAAAAAAEBzQAAc2YzMgAAAAAAAQxCAAAF3v//8yYAAAeSAAD9kf//+6L///2jAAAD3AAAwGz/wAARCAAOABkDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9sAQwACAgICAgIEAgIEBgQEBAYIBgYGBggKCAgICAgKDAoKCgoKCgwMDAwMDAwMDg4ODg4OEBAQEBASEhISEhISEhIS/9sAQwEDAwMFBAUIBAQIEw0LDRMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMT/90ABAAC/9oADAMBAAIRAxEAPwD4O+CH/BPrWvjX8LtL+J1r4y0zSo9UExFrcW928kflTPD8zRRMhzs3DBPB55rsJf8AgmJ42jleNPFFnIqkgOtvLhgO4yQcH3APtXyJ4J/aw/aR+G/hi18F+BPGmqaVpNlvEFrbzlIo/MdpG2r2y7Mx9ya0H/bE/aekv/7Uk8a6k11kN5xkBkypyDuxnIIyOeDQB9T+Ov8Agmfr3gfwRrPjWXx1pN2mj2NxfNBHa3qvKLeJpCilogoLbcAkgAnnivzEr6a1z9sz9qnxNol54b1/x5rF3YahBJbXMElwSksMqlJEYd1ZSQR6GvmWgD//2Q==",
+												"slideIndex": "0",
+												"slideTransitionType": -1,
+												"slideLabel": "Title",
+												"slideColor": "0 0 0 1"
+											}
+										]
+									},
+									{
+										"groupName": "Chorus",
+										"groupColor": "0.5 0 0.5 1",
+										"groupSlides": [
+											{
+												"slideEnabled": true,
+												"slideNotes": "",
+												"slideAttachmentMask": 0,
+												"slideText": "BLESS THE LORD, OH MY SOUL\nOH MY SOUL, WORSHIP HIS HOLY NAME",
+												"slideImage": "/9j/4AAQSkZJRgABAQAASABIAAD/4QB0RXhpZgAATU0AKgAAAAgABAEaAAUAAAABAAAAPgEbAAUAAAABAAAARgEoAAMAAAABAAIAAIdpAAQAAAABAAAATgAAAAAAAABIAAAAAQAABwAAAAAZAAKgAgAEAAAAAQAAABmgAwAEAAAAAQAAAA4AAAAA/+0AOFBob3Rvc2hvcCAzLjAAOEJJTQQEAAAAAAAAOEJJTQQlAAAAAAAQ1B2M2Y8AsgTpgAmY7PhCfv/iB+hJQ0NfUFJPRklMRQABAQAAB9hhcHBsAiAAAG1udHJSR0IgWFlaIAfZAAIAGQALABoAC2Fjc3BBUFBMAAAAAGFwcGwAAAAAAAAAAAAAAAAAAAAAAAD21gABAAAAANMtYXBwbAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAC2Rlc2MAAAEIAAAAb2RzY20AAAF4AAAFnGNwcnQAAAcUAAAAOHd0cHQAAAdMAAAAFHJYWVoAAAdgAAAAFGdYWVoAAAd0AAAAFGJYWVoAAAeIAAAAFHJUUkMAAAecAAAADmNoYWQAAAesAAAALGJUUkMAAAecAAAADmdUUkMAAAecAAAADmRlc2MAAAAAAAAAFEdlbmVyaWMgUkdCIFByb2ZpbGUAAAAAAAAAAAAAABRHZW5lcmljIFJHQiBQcm9maWxlAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABtbHVjAAAAAAAAAB8AAAAMc2tTSwAAACgAAAGEZGFESwAAAC4AAAGsY2FFUwAAACQAAAHadmlWTgAAACQAAAH+cHRCUgAAACYAAAIidWtVQQAAACoAAAJIZnJGVQAAACgAAAJyaHVIVQAAACgAAAKaemhUVwAAABYAAALCbmJOTwAAACYAAALYY3NDWgAAACIAAAL+aGVJTAAAAB4AAAMgaXRJVAAAACgAAAM+cm9STwAAACQAAANmZGVERQAAACwAAAOKa29LUgAAABYAAAO2c3ZTRQAAACYAAALYemhDTgAAABYAAAPMamFKUAAAABoAAAPiZWxHUgAAACIAAAP8cHRQTwAAACYAAAQebmxOTAAAACgAAAREZXNFUwAAACYAAAQedGhUSAAAACQAAARsdHJUUgAAACIAAASQZmlGSQAAACgAAASyaHJIUgAAACgAAATacGxQTAAAACwAAAUCcnVSVQAAACIAAAUuYXJFRwAAACYAAAVQZW5VUwAAACYAAAV2AFYBYQBlAG8AYgBlAGMAbgD9ACAAUgBHAEIAIABwAHIAbwBmAGkAbABHAGUAbgBlAHIAZQBsACAAUgBHAEIALQBiAGUAcwBrAHIAaQB2AGUAbABzAGUAUABlAHIAZgBpAGwAIABSAEcAQgAgAGcAZQBuAOgAcgBpAGMAQx6lAHUAIABoAOwAbgBoACAAUgBHAEIAIABDAGgAdQBuAGcAUABlAHIAZgBpAGwAIABSAEcAQgAgAEcAZQBuAOkAcgBpAGMAbwQXBDAEMwQwBDsETAQ9BDgEOQAgBD8EQAQ+BEQEMAQ5BDsAIABSAEcAQgBQAHIAbwBmAGkAbAAgAGcA6QBuAOkAcgBpAHEAdQBlACAAUgBWAEIAwQBsAHQAYQBsAOEAbgBvAHMAIABSAEcAQgAgAHAAcgBvAGYAaQBskBp1KAAgAFIARwBCACCCcl9pY8+P8ABHAGUAbgBlAHIAaQBzAGsAIABSAEcAQgAtAHAAcgBvAGYAaQBsAE8AYgBlAGMAbgD9ACAAUgBHAEIAIABwAHIAbwBmAGkAbAXkBegF1QXkBdkF3AAgAFIARwBCACAF2wXcBdwF2QBQAHIAbwBmAGkAbABvACAAUgBHAEIAIABnAGUAbgBlAHIAaQBjAG8AUAByAG8AZgBpAGwAIABSAEcAQgAgAGcAZQBuAGUAcgBpAGMAQQBsAGwAZwBlAG0AZQBpAG4AZQBzACAAUgBHAEIALQBQAHIAbwBmAGkAbMd8vBgAIABSAEcAQgAg1QS4XNMMx3xmbpAaACAAUgBHAEIAIGPPj/Blh072TgCCLAAgAFIARwBCACAw1zDtMNUwoTCkMOsDkwO1A70DuQO6A8wAIAPAA8EDvwPGA68DuwAgAFIARwBCAFAAZQByAGYAaQBsACAAUgBHAEIAIABnAGUAbgDpAHIAaQBjAG8AQQBsAGcAZQBtAGUAZQBuACAAUgBHAEIALQBwAHIAbwBmAGkAZQBsDkIOGw4jDkQOHw4lDkwAIABSAEcAQgAgDhcOMQ5IDicORA4bAEcAZQBuAGUAbAAgAFIARwBCACAAUAByAG8AZgBpAGwAaQBZAGwAZQBpAG4AZQBuACAAUgBHAEIALQBwAHIAbwBmAGkAaQBsAGkARwBlAG4AZQByAGkBDQBrAGkAIABSAEcAQgAgAHAAcgBvAGYAaQBsAFUAbgBpAHcAZQByAHMAYQBsAG4AeQAgAHAAcgBvAGYAaQBsACAAUgBHAEIEHgQxBEkEOAQ5ACAEPwRABD4ERAQ4BDsETAAgAFIARwBCBkUGRAZBACAGKgY5BjEGSgZBACAAUgBHAEIAIAYnBkQGOQYnBkUARwBlAG4AZQByAGkAYwAgAFIARwBCACAAUAByAG8AZgBpAGwAZXRleHQAAAAAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC4AWFlaIAAAAAAAAPNSAAEAAAABFs9YWVogAAAAAAAAdE0AAD3uAAAD0FhZWiAAAAAAAABadQAArHMAABc0WFlaIAAAAAAAACgaAAAVnwAAuDZjdXJ2AAAAAAAAAAEBzQAAc2YzMgAAAAAAAQxCAAAF3v//8yYAAAeSAAD9kf//+6L///2jAAAD3AAAwGz/wAARCAAOABkDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9sAQwACAgICAgIEAgIEBgQEBAYIBgYGBggKCAgICAgKDAoKCgoKCgwMDAwMDAwMDg4ODg4OEBAQEBASEhISEhISEhIS/9sAQwEDAwMFBAUIBAQIEw0LDRMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMT/90ABAAC/9oADAMBAAIRAxEAPwD8/PhJ+wR4j+Lfwn0n4qaV4msoF1UzYsjBO00QilkiyzELGQTHkbWJ+Ycdcd//AMOxvG+4j/hJrTgHn7PJzhtv97uPmHt1w3y18W+Gv2jPjh4P8P2nhXw14lvLTTrBWS3t0ZSkSu7yMFyDgFpHJHqx9TW2f2r/ANooymY+LL3eRgtlM4xjrt9AB9KAPqPxR/wTe8UeFfAuueN9Q8W6eq6LZXF6bdre48yYW8TSFUZVdAW24BYjk88V+a9e9X/7UH7QGqWFzpl94qvZILy3ltJ13KN8E6lJYyQoO11JDDPINeC0Af/Z",
+												"slideIndex": "0",
+												"slideTransitionType": -1,
+												"slideLabel": "Chorus",
+												"slideColor": "0.5 0 0.5 1"
+											},
+											{
+												"slideEnabled": true,
+												"slideNotes": "",
+												"slideAttachmentMask": 0,
+												"slideText": "SING LIKE NEVER BEFORE, OH MY SOUL\nI'LL WORSHIP YOUR HOLY NAME",
+												"slideImage": "/9j/4AAQSkZJRgABAQAASABIAAD/4QB0RXhpZgAATU0AKgAAAAgABAEaAAUAAAABAAAAPgEbAAUAAAABAAAARgEoAAMAAAABAAIAAIdpAAQAAAABAAAATgAAAAAAAABIAAAAAQAABwAAAAAZAAKgAgAEAAAAAQAAABmgAwAEAAAAAQAAAA4AAAAA/+0AOFBob3Rvc2hvcCAzLjAAOEJJTQQEAAAAAAAAOEJJTQQlAAAAAAAQ1B2M2Y8AsgTpgAmY7PhCfv/iB+hJQ0NfUFJPRklMRQABAQAAB9hhcHBsAiAAAG1udHJSR0IgWFlaIAfZAAIAGQALABoAC2Fjc3BBUFBMAAAAAGFwcGwAAAAAAAAAAAAAAAAAAAAAAAD21gABAAAAANMtYXBwbAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAC2Rlc2MAAAEIAAAAb2RzY20AAAF4AAAFnGNwcnQAAAcUAAAAOHd0cHQAAAdMAAAAFHJYWVoAAAdgAAAAFGdYWVoAAAd0AAAAFGJYWVoAAAeIAAAAFHJUUkMAAAecAAAADmNoYWQAAAesAAAALGJUUkMAAAecAAAADmdUUkMAAAecAAAADmRlc2MAAAAAAAAAFEdlbmVyaWMgUkdCIFByb2ZpbGUAAAAAAAAAAAAAABRHZW5lcmljIFJHQiBQcm9maWxlAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABtbHVjAAAAAAAAAB8AAAAMc2tTSwAAACgAAAGEZGFESwAAAC4AAAGsY2FFUwAAACQAAAHadmlWTgAAACQAAAH+cHRCUgAAACYAAAIidWtVQQAAACoAAAJIZnJGVQAAACgAAAJyaHVIVQAAACgAAAKaemhUVwAAABYAAALCbmJOTwAAACYAAALYY3NDWgAAACIAAAL+aGVJTAAAAB4AAAMgaXRJVAAAACgAAAM+cm9STwAAACQAAANmZGVERQAAACwAAAOKa29LUgAAABYAAAO2c3ZTRQAAACYAAALYemhDTgAAABYAAAPMamFKUAAAABoAAAPiZWxHUgAAACIAAAP8cHRQTwAAACYAAAQebmxOTAAAACgAAAREZXNFUwAAACYAAAQedGhUSAAAACQAAARsdHJUUgAAACIAAASQZmlGSQAAACgAAASyaHJIUgAAACgAAATacGxQTAAAACwAAAUCcnVSVQAAACIAAAUuYXJFRwAAACYAAAVQZW5VUwAAACYAAAV2AFYBYQBlAG8AYgBlAGMAbgD9ACAAUgBHAEIAIABwAHIAbwBmAGkAbABHAGUAbgBlAHIAZQBsACAAUgBHAEIALQBiAGUAcwBrAHIAaQB2AGUAbABzAGUAUABlAHIAZgBpAGwAIABSAEcAQgAgAGcAZQBuAOgAcgBpAGMAQx6lAHUAIABoAOwAbgBoACAAUgBHAEIAIABDAGgAdQBuAGcAUABlAHIAZgBpAGwAIABSAEcAQgAgAEcAZQBuAOkAcgBpAGMAbwQXBDAEMwQwBDsETAQ9BDgEOQAgBD8EQAQ+BEQEMAQ5BDsAIABSAEcAQgBQAHIAbwBmAGkAbAAgAGcA6QBuAOkAcgBpAHEAdQBlACAAUgBWAEIAwQBsAHQAYQBsAOEAbgBvAHMAIABSAEcAQgAgAHAAcgBvAGYAaQBskBp1KAAgAFIARwBCACCCcl9pY8+P8ABHAGUAbgBlAHIAaQBzAGsAIABSAEcAQgAtAHAAcgBvAGYAaQBsAE8AYgBlAGMAbgD9ACAAUgBHAEIAIABwAHIAbwBmAGkAbAXkBegF1QXkBdkF3AAgAFIARwBCACAF2wXcBdwF2QBQAHIAbwBmAGkAbABvACAAUgBHAEIAIABnAGUAbgBlAHIAaQBjAG8AUAByAG8AZgBpAGwAIABSAEcAQgAgAGcAZQBuAGUAcgBpAGMAQQBsAGwAZwBlAG0AZQBpAG4AZQBzACAAUgBHAEIALQBQAHIAbwBmAGkAbMd8vBgAIABSAEcAQgAg1QS4XNMMx3xmbpAaACAAUgBHAEIAIGPPj/Blh072TgCCLAAgAFIARwBCACAw1zDtMNUwoTCkMOsDkwO1A70DuQO6A8wAIAPAA8EDvwPGA68DuwAgAFIARwBCAFAAZQByAGYAaQBsACAAUgBHAEIAIABnAGUAbgDpAHIAaQBjAG8AQQBsAGcAZQBtAGUAZQBuACAAUgBHAEIALQBwAHIAbwBmAGkAZQBsDkIOGw4jDkQOHw4lDkwAIABSAEcAQgAgDhcOMQ5IDicORA4bAEcAZQBuAGUAbAAgAFIARwBCACAAUAByAG8AZgBpAGwAaQBZAGwAZQBpAG4AZQBuACAAUgBHAEIALQBwAHIAbwBmAGkAaQBsAGkARwBlAG4AZQByAGkBDQBrAGkAIABSAEcAQgAgAHAAcgBvAGYAaQBsAFUAbgBpAHcAZQByAHMAYQBsAG4AeQAgAHAAcgBvAGYAaQBsACAAUgBHAEIEHgQxBEkEOAQ5ACAEPwRABD4ERAQ4BDsETAAgAFIARwBCBkUGRAZBACAGKgY5BjEGSgZBACAAUgBHAEIAIAYnBkQGOQYnBkUARwBlAG4AZQByAGkAYwAgAFIARwBCACAAUAByAG8AZgBpAGwAZXRleHQAAAAAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC4AWFlaIAAAAAAAAPNSAAEAAAABFs9YWVogAAAAAAAAdE0AAD3uAAAD0FhZWiAAAAAAAABadQAArHMAABc0WFlaIAAAAAAAACgaAAAVnwAAuDZjdXJ2AAAAAAAAAAEBzQAAc2YzMgAAAAAAAQxCAAAF3v//8yYAAAeSAAD9kf//+6L///2jAAAD3AAAwGz/wAARCAAOABkDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9sAQwACAgICAgIEAgIEBgQEBAYIBgYGBggKCAgICAgKDAoKCgoKCgwMDAwMDAwMDg4ODg4OEBAQEBASEhISEhISEhIS/9sAQwEDAwMFBAUIBAQIEw0LDRMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMT/90ABAAC/9oADAMBAAIRAxEAPwD88/hF+wf4o+Lvw20r4kaX4gtbeHVUlcQNDIzRmKeSAqzcAk7N/wAuRggZzkV6FF/wTL8dyOqP4itowWUFmgfABIyThycDqcAnjgHivj7w1+018ffB3hG18A+GfFd/aaLZBxBZJJmGMSuzuFQggbmZifUk1eH7Vn7Q6qFXxXegDJA+TuMH+HuOD7UAfTXir/gnP4u8J+ENX8X33iWz8rSLC6vmQwSgyC2jaTy1K7sM4XCkjA/iIr84q+g7n9q79oy70fUtAm8X6h9i1iF7e+hVwq3EUilHWUKBuBViDnsTXz5QB//Z",
+												"slideIndex": "0",
+												"slideTransitionType": -1,
+												"slideLabel": "",
+												"slideColor": ""
+											}
+										]
+									}
+								],
+								"presentationName": "10,000 Reasons (Bless The Lord)",
+								"presentationHasTimeline": 0,
+								"presentationCurrentLocation": "/Volumes/Jeff/Documents/ProPresenter6/10,000 Reasons (Bless The Lord).pro6"
+							}
+						}
+				6. Get Current Slide Index
+					SEND: {"action":"presentationSlideIndex"}
+					RECEIVE: {"action":"presentationSlideIndex","slideIndex":"0"}
+				7. Trigger Slide
+					SEND: {"action":"presentationTriggerIndex","slideIndex":3,"presentationPath":"\/Volumes\/Jeff\/Documents\/ProPresenter6\/10,000 Reasons (Bless The Lord).pro6"}
+					RECEIVE: {"slideIndex":3,"action":"presentationTriggerIndex","presentationPath":"10,000 Reasons (Bless The Lord).pro6"}
+				
+			*/
+			// var socket = new WebSocket('ws://joshua:50245/remote');
+		</script>
+	</head>
+	<body>
+		<div id="errbox"></div>
+		<div id="infobox"></div>
+		<div id="library"></div>
+		<div id="playlists"></div>
+		<div id="presentation"></div>
+	</body>
+</html>
