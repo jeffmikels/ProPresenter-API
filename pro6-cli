@@ -1,0 +1,149 @@
+#!/usr/local/bin/python3
+
+import json
+import sys
+import websocket
+
+HOST='localhost:59399'
+PASSWORD='control'
+wsurl = "ws://{}/remote".format(HOST)
+
+def on_message(self, ws, message):
+	print(message)
+
+def on_error(self, ws, error):
+	print(error)
+
+def on_close(self, ws):
+	print("### closed ###")
+
+
+
+class Pro6:
+	
+	def __init__(self, host, password,
+			forever=False, on_message=None, on_error=None, on_close=None, on_open=None):
+		wsurl = "ws://{}/remote".format(HOST)
+
+		self.password = password
+		self.connected = False
+		self.controlling = False
+		self.forever = forever
+		
+		if forever:
+			self.ws = websocket.WebSocketApp(wsurl)
+			self.ws.on_message = on_message
+			self.ws.on_error = on_error
+			self.ws.on_close = on_close
+			self.ws.on_open = on_open
+			self.ws.run_forever()
+		
+		else:
+			self.ws = websocket.create_connection(wsurl, timeout=1)
+			self.connected = True
+			self.authenticate()
+		
+	def send(self,jsonObj, expectAnswer=True):
+		if self.connected:
+			s = json.dumps(jsonObj)
+			# print('SENDING ', s)
+			self.ws.send(s)
+			if expectAnswer and not self.forever:
+				return json.loads(self.ws.recv())
+	
+	def authenticate(self):
+		cmd = {
+			'action': 'authenticate',
+			'protocol': '600',
+			'password': PASSWORD
+		}
+		return self.send(cmd)
+	
+	def get_library(self):
+		cmd = {"action":"libraryRequest"}
+		return self.send(cmd)
+	
+	def get_playlists(self):
+		cmd = {"action":"playlistRequestAll"}
+		return self.send(cmd)
+	
+	def get_presentation(self, path):
+		cmd = {
+		    "action": "presentationRequest",
+		    "presentationPath": path,
+		    "presentationSlideQuality": 0, # disable slide images
+		}
+		return self.send(cmd)
+	
+	def get_current_presentation(self):
+		cmd = {
+			"action": "presentationCurrent",
+			"presentationSlideQuality": 0, #disable slide images
+		}
+		return self.send(cmd)
+		
+		res = self.get_slide_index()
+		if 'slideIndex' in res:
+			res = self.trigger_slide(res['slideIndex'])
+			if 'presentationPath' in res:
+				return self.get_presentation(res['presentationPath'])
+		
+	def get_slide_index(self):
+		cmd = {"action":"presentationSlideIndex"}
+		return self.send(cmd)
+	
+	def trigger_slide(self, n):
+		cmd = {"action":"presentationTriggerIndex","slideIndex":n}
+		return self.send(cmd)
+	
+	def next_slide(self):
+		curSlide = 0
+		numSlides = 0
+		res = self.get_current_presentation()
+		for group in res['presentation']['presentationSlideGroups']:
+			numSlides += len(group['groupSlides']);
+		
+		res = self.get_slide_index()
+		curSlide = int(res['slideIndex'])
+		if curSlide < numSlides-1:
+			return self.trigger_slide(curSlide + 1)
+		else:
+			return self.trigger_slide(0)
+
+if __name__ == "__main__":
+	# websocket.enableTrace(True)
+	# ws = websocket.WebSocketApp(wsurl,
+	# 						  on_message = on_message,
+	# 						  on_error = on_error,
+	# 						  on_close = on_close)
+	# ws.on_open = on_open
+	# ws.run_forever()
+	
+	p6 = Pro6(HOST, PASSWORD, forever=False)
+	
+	if sys.argv[1] == 'next':
+		print(p6.next_slide())
+	
+	# ws = websocket.WebSocket()
+	# ws.settimeout(2)
+	# ws.connect(wsurl)
+	#
+	# # request control
+	# result = authenticate(ws)
+	# print (result)
+	#
+	# # get current slide index
+	# ws.send('{"action":"presentationSlideIndex"}')
+	# result = json.loads(ws.recv())
+	# if 'slideIndex' in result:
+	# 	slideIndex = result['slideIndex']
+	#
+	# # go to next slide
+	# newSlideIndex = int(slideIndex) + 1
+	# ws.send('{"action":"presentationTriggerIndex","slideIndex":'+str(newSlideIndex)+'}')
+	# result = json.loads(ws.recv())
+	# print(result)
+	# ws.close()
+	
+	
+
