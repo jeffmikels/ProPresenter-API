@@ -18,26 +18,26 @@ ws://[host]:[port]/remote
 
 ### Authenticate
 
-SEND:
+COMMAND TO SEND:
 
 ```javascript
 {"action":"authenticate","protocol":"600","password":"control"}
 ```
-RECEIVE:
+EXPECTED RESPONSE:
 
 ```javascript
 {"controller":1,"authenticated":1,"error":"","action":"authenticate"}
 ```
 
-### Get Library
+### Get Library (all presentations)
 
-SEND:
+COMMAND TO SEND:
 
 ```javascript
 {"action":"libraryRequest"}
 ```
 
-RECEIVE:
+EXPECTED RESPONSE:
 
 ```javascript
 {"library":[array of pathnames],"action":"libraryRequest"}
@@ -45,13 +45,13 @@ RECEIVE:
 
 ### Get All Playlists
 
-SEND:
+COMMAND TO SEND:
 
 ```javascript
 {"action":"playlistRequestAll"}
 ```
 
-RECEIVE:
+EXPECTED RESPONSE:
 
 This request returns a large amount of data similar to the following
 
@@ -79,9 +79,9 @@ This request returns a large amount of data similar to the following
 }
 ```
 
-### Request Presentation
+### Request Presentation (set of slides)
 
-SEND:
+COMMAND TO SEND:
 
 ```javascript
 {
@@ -94,7 +94,7 @@ SEND:
 
 `presentationSlideQuality` determines the resolution / size of the slide previews sent from ProPresenter.
 
-RECEIVE:
+EXPECTED RESPONSE:
 
 ```javascript
 {
@@ -128,25 +128,25 @@ RECEIVE:
 
 ### Get Index of Current Slide
 
-SEND:
+COMMAND TO SEND:
 
 ```javascript
 {"action":"presentationSlideIndex"}
 ```
-RECEIVE:
+EXPECTED RESPONSE:
 
 ```javascript
 {"action":"presentationSlideIndex","slideIndex":"0"}
 ```
 ### Trigger Slide
 
-SEND:
+COMMAND TO SEND:
 
 ```javascript
 {"action":"presentationTriggerIndex","slideIndex":3,"presentationPath":"[SLIDE PATH]"}
 ```
 
-RECEIVE:
+EXPECTED RESPONSE:
 
 ```javascript
 {"slideIndex":3,"action":"presentationTriggerIndex","presentationPath":"[SLIDE PATH]"}
@@ -163,29 +163,29 @@ ws://[host]:[port]/stagedisplay
 
 ### Authenticate
 
-SEND:
+COMMAND TO SEND:
 
 ```javascript
 {"pwd":PASSWORD,"ptl":610,"acn":"ath"}
 ```
 
-RECEIVE:
+EXPECTED RESPONSE:
 
 ```javascript
 {"acn":"ath","ath":true,"err":""}
 ```
 
-### New Time
+### On New Time
 
-RECEIVE:
+EXPECTED RESPONSE:
 
 ```javascript
 {"acn":"sys","txt":" 11:17 AM"}
 ```
 
-### New Slide
+### On New Slide
 
-RECEIVE:
+EXPECTED RESPONSE:
 
 ```javascript
 {
