@@ -1,17 +1,22 @@
-# ProPresenter-RemoteControl
-Documenting RenewedVision's undocumented Remote Control protocol with examples
-
-The ProPresenter Remote Control protocol is an unencrypted text-based websocket connection from the client to the ProPresenter instance.
+# ProPresenter-API
+Documenting RenewedVision's undocumented network protocols with examples
 
 This document refers to *ProPresenter 6*.
 
-## Connecting
+Both the Remote Control and the Stage Display protocols are unencrypted text-based websocket connections from the client to the ProPresenter instance.
+
+Note, if both the Remote Control and the Stage Display interface are enabled in ProPresenter, they both operate over the *Remote Control* network port.
+
+## Remote Control
+
+
+### Connecting
 
 ```javascript
 ws://[host]:[port]/remote
 ```
 
-## Authenticate
+### Authenticate
 
 SEND:
 
@@ -24,7 +29,7 @@ RECEIVE:
 {"controller":1,"authenticated":1,"error":"","action":"authenticate"}
 ```
 
-## Get Library
+### Get Library
 
 SEND:
 
@@ -38,7 +43,7 @@ RECEIVE:
 {"library":[array of pathnames],"action":"libraryRequest"}
 ```
 
-## Get All Playlists
+### Get All Playlists
 
 SEND:
 
@@ -74,7 +79,7 @@ This request returns a large amount of data similar to the following
 }
 ```
 
-## Request Presentation
+### Request Presentation
 
 SEND:
 
@@ -121,7 +126,7 @@ RECEIVE:
 }
 ```
 
-## Get Index of Current Slide
+### Get Index of Current Slide
 
 SEND:
 
@@ -133,7 +138,7 @@ RECEIVE:
 ```javascript
 {"action":"presentationSlideIndex","slideIndex":"0"}
 ```
-## Trigger Slide
+### Trigger Slide
 
 SEND:
 
@@ -145,4 +150,65 @@ RECEIVE:
 
 ```javascript
 {"slideIndex":3,"action":"presentationTriggerIndex","presentationPath":"[SLIDE PATH]"}
+```
+
+
+## Stage Display
+
+### Connecting
+
+```javascript
+ws://[host]:[port]/stagedisplay
+```
+
+### Authenticate
+
+SEND:
+
+```javascript
+{"pwd":PASSWORD,"ptl":610,"acn":"ath"}
+```
+
+RECEIVE:
+
+```javascript
+{"acn":"ath","ath":true,"err":""}
+```
+
+### New Time
+
+RECEIVE:
+
+```javascript
+{"acn":"sys","txt":" 11:17 AM"}
+```
+
+### New Slide
+
+RECEIVE:
+
+```javascript
+{
+	"acn": "fv",
+	"ary": [
+		{
+			"acn": "cs",			# CURRENT SLIDE
+			"uid": "[SLIDE UID]",
+			"txt": "[SLIDE TEXT]"
+		},
+		{
+			"acn": "ns",			# NEXT SLIDE
+			"uid": "[SLIDE UID]",
+			"txt": "[SLIDE TEXT]"
+		},
+		{
+			"acn": "csn",			# CURRENT SLIDE NOTES
+			"txt": "[SLIDE NOTES]"
+		},
+		{
+			"acn": "nsn",			# NEXT SLIDE NOTES
+			"txt": "[SLIDE NOTES]"
+		}
+	]
+}
 ```
