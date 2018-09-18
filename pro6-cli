@@ -2,11 +2,8 @@
 
 import json
 import sys
-import websocket
-
-HOST='localhost:59399'
-PASSWORD='control'
-wsurl = "ws://{}/remote".format(HOST)
+import click      # pip install click
+import websocket  # pip install websocket-client
 
 def on_message(self, ws, message):
 	print(message)
@@ -17,13 +14,13 @@ def on_error(self, ws, error):
 def on_close(self, ws):
 	print("### closed ###")
 
-
-
 class Pro6:
 	
-	def __init__(self, host, password,
+	def __init__(self, host='', port='', password='',
 			forever=False, on_message=None, on_error=None, on_close=None, on_open=None):
-		wsurl = "ws://{}/remote".format(HOST)
+		
+		self.wsurl = "ws://{}:{}/remote".format(host, port)
+		# print(self.wsurl)
 
 		self.password = password
 		self.connected = False
@@ -31,7 +28,7 @@ class Pro6:
 		self.forever = forever
 		
 		if forever:
-			self.ws = websocket.WebSocketApp(wsurl)
+			self.ws = websocket.WebSocketApp(self.wsurl)
 			self.ws.on_message = on_message
 			self.ws.on_error = on_error
 			self.ws.on_close = on_close
@@ -39,23 +36,32 @@ class Pro6:
 			self.ws.run_forever()
 		
 		else:
-			self.ws = websocket.create_connection(wsurl, timeout=1)
+			self.ws = websocket.create_connection(self.wsurl, timeout=2)
+			self.ws.on_message = on_message
+			self.ws.on_error = on_error
+			self.ws.on_close = on_close
+			self.ws.on_open = on_open
 			self.connected = True
 			self.authenticate()
 		
-	def send(self,jsonObj, expectAnswer=True):
+	def send(self, obj, expectAnswer=True):
 		if self.connected:
-			s = json.dumps(jsonObj)
+			s = json.dumps(obj)
 			# print('SENDING ', s)
-			self.ws.send(s)
-			if expectAnswer and not self.forever:
-				return json.loads(self.ws.recv())
+			try:
+				self.ws.send(s)
+				if expectAnswer and not self.forever:
+					return json.loads(self.ws.recv())
+			except websocket._exceptions.WebSocketTimeoutException:
+				return {"error":"Websocket Timeout. We expected a response, but got nothing. This happens whenever ProPresenter received an invalid command and ignored it."}
+		else:
+			return {"error":"Websocket Not Connected"}
 	
 	def authenticate(self):
 		cmd = {
 			'action': 'authenticate',
 			'protocol': '600',
-			'password': PASSWORD
+			'password': self.password
 		}
 		return self.send(cmd)
 	
@@ -110,19 +116,54 @@ class Pro6:
 		else:
 			return self.trigger_slide(0)
 
+	def prev_slide(self):
+		curSlide = 0
+		numSlides = 0
+		res = self.get_current_presentation()
+		for group in res['presentation']['presentationSlideGroups']:
+			numSlides += len(group['groupSlides']);
+		
+		res = self.get_slide_index()
+		curSlide = int(res['slideIndex'])
+		if curSlide > 0:
+			return self.trigger_slide(curSlide - 1)
+
+
+@click.command()
+@click.option('--action', default='', help='send a specific action')
+@click.option('--send',   default=None, help='send a raw JSON command')
+@click.option('--next',   is_flag=True, help='Go to the next slide.')
+@click.option('--prev',   is_flag=True, help='Go to the previous slide.')
+@click.option('--trace',  is_flag=True, help='Enable websocket tracing.')
+def command(action, send, next, prev, trace):
+	# load configuration
+	config = json.load(open('config.json','r'))
+	
+	if (trace):
+		websocket.enableTrace(True)
+	
+	# send the websocket commands
+	p6 = Pro6(host=config['HOST'], port=config['PORT'], password=config['PASSWORD'], forever=False)
+	
+	if (next):
+		print(json.dumps(p6.next_slide()))
+		exit()
+		
+	if (prev):
+		print(json.dumps(p6.prev_slide()))
+		exit()
+	
+	if (action):
+		print(json.dumps(p6.send({'action': action})))
+		exit()
+
+	if (send):
+		print(json.dumps(p6.send(json.loads(send))))
+		exit()
+
 if __name__ == "__main__":
-	# websocket.enableTrace(True)
-	# ws = websocket.WebSocketApp(wsurl,
-	# 						  on_message = on_message,
-	# 						  on_error = on_error,
-	# 						  on_close = on_close)
-	# ws.on_open = on_open
-	# ws.run_forever()
-	
-	p6 = Pro6(HOST, PASSWORD, forever=False)
-	
-	if sys.argv[1] == 'next':
-		print(p6.next_slide())
+	command()
+	exit()
 	
 	# ws = websocket.WebSocket()
 	# ws.settimeout(2)
