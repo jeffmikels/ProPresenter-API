@@ -212,6 +212,16 @@ EXPECTED RESPONSE:
 {"acn":"sys","txt":" 11:17 AM"}
 ```
 
+### On Timer Update
+
+EXPECTED RESPONSE:
+
+```javascript
+{ acn: 'tmr',
+  uid: '[TIMER UID]',
+  txt: '--:--:--' }
+```
+
 ### On New Slide
 
 EXPECTED RESPONSE:
