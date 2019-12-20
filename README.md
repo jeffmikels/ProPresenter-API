@@ -65,25 +65,45 @@ This request returns all playlists according to the following format.
 
 ```javascript
 {
-    "playlistAll": [
+  "playlistAll": [
+    {
+      "playlistLocation": "0",
+      "playlistType": "playlistTypePlaylist",
+      "playlistName": "Default",
+      "playlist": [
         {
-            "playlistLocation": "1",
-            "playlistType": "playlistTypePlaylist",
-            "playlistName": "Testing",
-            "playlist": [
-                {
-                    "playlistItemName": "Song 1 Title",
-                    "playlistItemLocation": "1:0",
-                    "playlistItemType": "playlistItemTypePresentation"
-                },
-                {
-                    "playlistItemName": "Song 2 Title",
-                    "playlistItemLocation": "1:1",
-                    "playlistItemType": "playlistItemTypePresentation"
-                }
-            ]
+          "playlistItemName": "!~ PRE-SERVICE",
+          "playlistItemLocation": "0:0",
+          "playlistItemType": "playlistItemTypePresentation"
         },
-    "action": "playlistRequestAll"
+      ]
+    },
+    {
+      "playlistLocation": "1",
+      "playlistType": "playlistTypeGroup",
+      "playlistName": "2017",
+      "playlist": [
+        {
+          "playlistLocation": "1.0",
+          "playlistType": "playlistTypePlaylist",
+          "playlistName": "2017-01-28-Vision Dinner",
+          "playlist": [
+            {
+              "playlistItemName": "!MISC2",
+              "playlistItemLocation": "1.0:0",
+              "playlistItemType": "playlistItemTypePresentation"
+            },
+            {
+              "playlistItemName": "!MISC1",
+              "playlistItemLocation": "1.0:1",
+              "playlistItemType": "playlistItemTypePresentation"
+            },
+          ]
+        },
+      ]
+    }
+  ],
+  "action": "playlistRequestAll"
 }
 ```
 
