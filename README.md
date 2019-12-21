@@ -114,13 +114,17 @@ COMMAND TO SEND:
 ```javascript
 {
     "action": "presentationRequest",
-    "presentationPath": "/Path/To/ProPresenter/Library/Song 1 Title.pro6",
+    "presentationPath": "\/Path\/To\/ProPresenter\/Library\/Song 1 Title.pro6",
     "presentationSlideQuality": 25
 }
 ```
 
-* `presentationPath` is required but need not be the full path of the presentation. Specifying the filename (eg. `Song 1 Title.pro6`) is good enough.
-* `presentationSlideQuality` is optional. It determines the resolution / size of the slide previews sent from ProPresenter. If left blank, high quality previews will be sent. If set to `0` previews will not be generated at all. A good compromise is `25`.
+* `presentationPath` is required and it can be structured in one of three ways
+  * It can be a full path to a pro6 file but note that all slashes need to be preceeded by a forward slash in the request.
+  * It can be the basename of a presentation that exists in the library (eg. `Song 1 Title.pro6`) is good enough... usually.
+  * It can be the "playlist location" of the presentation. The playlist location is determined according to the order of items in the playlist window, the items are indexed from 0, and groups are sub-indexed with a dot, then presentations inside the playlist are indexed with a colon and a numeral. That is, the first presentation of the first playlist is `0:0` and if the first playlist item is a group, the first item of the first playlist of that group is `0.0:0`
+  * A presentationPath specified with a playlist address and not a filename seems to be the most reliable.
+* `presentationSlideQuality` is optional. It determines the resolution / size of the slide previews sent from ProPresenter. If left blank, high quality previews will be sent. If set to `0` previews will not be generated at all. The remote app asks for quality `25` first and then follows it up with a second request for quality `100`.
 
 EXPECTED RESPONSE:
 
@@ -149,12 +153,13 @@ EXPECTED RESPONSE:
         ],
         "presentationName": "[PRESENTATION TITLE]",
         "presentationHasTimeline": 0,
-        "presentationCurrentLocation": "[PRESENTATION PATH]"
+        "presentationCurrentLocation": "[PRESENTATION PATH OF CURRENTLY ACTIVE SLIDE]"
     }
 }
 ```
 
-* NOTE: the response contains `presentationCurrent` as the action instead of `presentationRequest`. This seems to be a bug in the ProPresenter response.
+* The response contains `presentationCurrent` as the action instead of `presentationRequest`. This seems to be a bug in the ProPresenter response.
+* You can distinguish this response from the real `presentationCurrent` request because that response will include `presentationPath` as a field at the root level of the response.
 
 ### Request Current Presentation
 
@@ -169,9 +174,9 @@ COMMAND TO SEND:
 
 EXPECTED RESPONSE:
 
-Same response as `requestPresentation`
+Same response as `requestPresentation` except this response will include `presentationPath` as a field at the root level of the response.
 
-* NOTE: This action only works if there is an *active slide*. When ProPresenter starts, no slide is marked active, so this action *returns nothing until a slide has been triggered*.
+* NOTE: This action only seems to work if there is an *active slide*. When ProPresenter starts, no slide is marked active, so this action *returns nothing until a slide has been triggered*.
 
 
 ### Get Index of Current Slide
@@ -186,6 +191,8 @@ EXPECTED RESPONSE:
 ```javascript
 {"action":"presentationSlideIndex","slideIndex":"0"}
 ```
+
+* NOTE: The ProPresenter remote issues this action every time it issues a `presentationRequest` action.
 
 ### Trigger Slide
 
@@ -202,7 +209,7 @@ EXPECTED RESPONSE:
 ```
 
 
-## Stage Display
+## Stage Display API
 
 ### Connecting
 
