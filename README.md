@@ -23,6 +23,8 @@ COMMAND TO SEND:
 ```javascript
 {"action":"authenticate","protocol":"600","password":"control"}
 ```
+* protocol is used to perform a version check. ProPresenter 6 seems to check for a value here of at least 600 - otherwise it denies authentication and returns "Protocol out of date. Update application"
+
 EXPECTED RESPONSE:
 
 ```javascript
@@ -208,6 +210,220 @@ EXPECTED RESPONSE:
 {"slideIndex":3,"action":"presentationTriggerIndex","presentationPath":"[PRESENTATION PATH]"}
 ```
 
+### Trigger Next Slide
+
+COMMAND TO SEND:
+
+```javascript
+{"action":"presentationTriggerNext"}
+```
+
+### Trigger Previous Slide
+
+COMMAND TO SEND:
+
+```javascript
+{"action":"presentationTriggerPrevious"}
+```
+
+### Display a Message
+
+COMMAND TO SEND:
+Display a message identified by it's index. Add as many key, value pairs as you like. Keys can be name of timers.
+
+```javascript
+{"action":"messageSend","messageIndex","0","messageKeys":"["key1","key2"....]","messageValues":"["Value1","Value2"...]"}
+```
+
+### Hide a Message
+
+COMMAND TO SEND:
+Hide a message identified by it's index
+
+```javascript
+{"action":"messageHide","messageIndex","0"}
+```
+
+### Start Audio Cue
+
+COMMAND TO SEND:
+
+```javascript
+{"action":"audioStartCue","audioChildPath","[Same as Presentation Path Format]"}
+```
+
+### Audio Play/Pause Toggle
+
+COMMAND TO SEND:
+
+```javascript
+{"action":"audioPlayPause"}
+```
+
+### TimeLine Play/Pause Toggle
+
+COMMAND TO SEND:
+
+```javascript
+{"action":"timelinePlayPause","presentationPath":"[PRESENTATION PATH]"}
+```
+
+### TimeLine Rewind
+
+COMMAND TO SEND:
+
+```javascript
+{"action":"timelineRewind":,"presentationPath":"[PRESENTATION PATH]"}
+```
+
+### Get Clock (Timers) Info
+
+COMMAND TO SEND:
+
+```javascript
+{"action":"clockRequest"}
+```
+### Start Recieving Updates for Clocks (Timers)
+
+COMMAND TO SEND:
+
+```javascript
+{"action":"clockStartSendingCurrentTime"}
+```
+
+### Stop Recieving Updates for Clocks (Timers)
+
+COMMAND TO SEND:
+
+```javascript
+{"action":"clockStopSendingCurrentTime"}
+```
+
+### Start a Clock (Timer)
+
+COMMAND TO SEND:
+(Clocks are refernces by index - see reply from "clockRequest" action above to learn indexes)
+
+```javascript
+{"action":"clockStart","clockIndex":"0"}
+```
+
+### Stop a Clock (Timer)
+
+COMMAND TO SEND:
+(Clocks are refernces by index - see reply from "clockRequest" action above to learn indexes)
+
+```javascript
+{"action":"clockStop","clockIndex":"0"}
+```
+
+### Reset a Clock (Timer)
+
+COMMAND TO SEND:
+(Clocks are refernces by index - see reply from "clockRequest" action above to learn indexes)
+
+```javascript
+{"action":"clockReset","clockIndex":"0"}
+```
+
+### Update a Clock (Timer) (eg edit time)
+
+COMMAND TO SEND:
+(Clocks are refernces by index - see reply from "clockRequest" action above to learn indexes)
+Not all parameters are required for each clocked type. Countdown clocks only need "clockTime".  Elapsed Time Clocks need "ClockTime" and optionally will use "clockElapsedTime" if you send it (to set the End Time).  You can Rename a clock by optionally including the clockName. Type 0 is countdown, Type 1 is CountDown to Time and Type 2 is Elapsed Time.  OverRun can be modified if you choose to include that as well.
+
+```javascript
+{"action":"clockUpdate","clockIndex":"1","clockType":"0","clockTime":"09:04:00","clockOverrun":"false","clockIsPM":"1","clockName":"Countdown 2","clockElapsedTime":"0:02:00"}
+```
+
+### Clear All
+
+COMMAND TO SEND:
+
+```javascript
+{"action":"clearall"}
+```
+
+### Clear Slide
+
+COMMAND TO SEND:
+
+```javascript
+{"action":"clearText"}
+```
+
+### Clear Props
+
+COMMAND TO SEND:
+
+```javascript
+{"action":"clearProps"}
+```
+
+### Clear Audio
+
+COMMAND TO SEND:
+
+```javascript
+{"action":"clearAudio"}
+```
+
+### Clear Video
+
+COMMAND TO SEND:
+
+```javascript
+{"action":"clearVideo"}
+```
+
+### Clear Telestrator
+
+COMMAND TO SEND:
+
+```javascript
+{"action":"clearTelestrator"}
+```
+
+### Clear To Logo
+
+COMMAND TO SEND:
+
+```javascript
+{"action":"clearToLogo"}
+```
+
+### Show Stage Display Message
+
+COMMAND TO SEND:
+
+```javascript
+{"action":"stageDisplaySendMessage","stageDisplayMessage":"Type a Message Here"}
+```
+
+### Hide Stage Display Message
+
+COMMAND TO SEND:
+
+```javascript
+{"action":"stageDisplayHideMessage"}
+```
+
+## TODO: Complete documentation for remaining remote commands...
+libraryRequest 
+messageRequest 
+stageDisplaySets
+clockResetAll
+clockStopAll
+clockStartAll
+socialSendTweet
+audioRequest
+audioCurrentSong
+audioIsPlaying
+telestratorSettings
+telestratorEndEditing
+telestratorSet
+telestratorUndo
+telestratorNew
 
 ## Stage Display API
 
