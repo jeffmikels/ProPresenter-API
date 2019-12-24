@@ -122,8 +122,8 @@ COMMAND TO SEND:
 ```
 
 * `presentationPath` is required and it can be structured in one of three ways
-  * It can be a full path to a pro6 file but note that all slashes need to be preceeded by a forward slash in the request.
-  * It can be the basename of a presentation that exists in the library (eg. `Song 1 Title.pro6`) is good enough... usually.
+  * It can be a full path to a pro6 file but note that all slashes need to be preceeded by a backslash in the request.
+  * It can be the basename of a presentation that exists in the library (eg. `Song 1 Title.pro6`) is (sometimes?) good enough.
   * It can be the "playlist location" of the presentation. The playlist location is determined according to the order of items in the playlist window, the items are indexed from 0, and groups are sub-indexed with a dot, then presentations inside the playlist are indexed with a colon and a numeral. That is, the first presentation of the first playlist is `0:0` and if the first playlist item is a group, the first item of the first playlist of that group is `0.0:0`
   * A presentationPath specified with a playlist address and not a filename seems to be the most reliable.
 * `presentationSlideQuality` is optional. It determines the resolution / size of the slide previews sent from ProPresenter. If left blank, high quality previews will be sent. If set to `0` previews will not be generated at all. The remote app asks for quality `25` first and then follows it up with a second request for quality `100`.
@@ -161,6 +161,7 @@ EXPECTED RESPONSE:
 ```
 
 * The response contains `presentationCurrent` as the action instead of `presentationRequest`. This seems to be a bug in the ProPresenter response.
+* The `presentationCurrentLocation` is not the location of the presentation you requested. It is the path of the presentation whose slide is currently active.
 * You can distinguish this response from the real `presentationCurrent` request because that response will include `presentationPath` as a field at the root level of the response.
 
 ### Request Current Presentation
@@ -168,10 +169,7 @@ EXPECTED RESPONSE:
 COMMAND TO SEND:
 
 ```javascript
-{
-	"action":"presentationCurrent",
-    "presentationSlideQuality": 25
-}
+{ "action":"presentationCurrent", "presentationSlideQuality": 25}
 ```
 
 EXPECTED RESPONSE:
@@ -229,7 +227,7 @@ COMMAND TO SEND:
 ### Display a Message
 
 COMMAND TO SEND:
-Display a message identified by it's index. Add as many key, value pairs as you like. Keys can be name of timers.
+Display a message identified by its index. Add as many key, value pairs as you like. Keys can be name of timers.
 
 ```javascript
 {"action":"messageSend","messageIndex","0","messageKeys":"["key1","key2"....]","messageValues":"["Value1","Value2"...]"}
@@ -238,7 +236,7 @@ Display a message identified by it's index. Add as many key, value pairs as you 
 ### Hide a Message
 
 COMMAND TO SEND:
-Hide a message identified by it's index
+Hide a message identified by its index
 
 ```javascript
 {"action":"messageHide","messageIndex","0"}
@@ -249,7 +247,7 @@ Hide a message identified by it's index
 COMMAND TO SEND:
 
 ```javascript
-{"action":"audioStartCue","audioChildPath","[Same as Presentation Path Format]"}
+{"action":"audioStartCue", "audioChildPath","[Same as Presentation Path Format]"}
 ```
 
 ### Audio Play/Pause Toggle
@@ -302,46 +300,65 @@ COMMAND TO SEND:
 ### Start a Clock (Timer)
 
 COMMAND TO SEND:
-(Clocks are refernces by index - see reply from "clockRequest" action above to learn indexes)
 
 ```javascript
 {"action":"clockStart","clockIndex":"0"}
 ```
 
+* Clocks are referenced by index. See reply from "clockRequest" action above to learn indexes.
+
 ### Stop a Clock (Timer)
 
 COMMAND TO SEND:
-(Clocks are refernces by index - see reply from "clockRequest" action above to learn indexes)
 
 ```javascript
 {"action":"clockStop","clockIndex":"0"}
 ```
+* Clocks are referenced by index. See reply from "clockRequest" action above to learn indexes.
 
 ### Reset a Clock (Timer)
 
 COMMAND TO SEND:
-(Clocks are refernces by index - see reply from "clockRequest" action above to learn indexes)
 
 ```javascript
 {"action":"clockReset","clockIndex":"0"}
 ```
+* Clocks are referenced by index. See reply from "clockRequest" action above to learn indexes.
 
 ### Update a Clock (Timer) (eg edit time)
 
 COMMAND TO SEND:
-(Clocks are refernces by index - see reply from "clockRequest" action above to learn indexes)
-Not all parameters are required for each clocked type. Countdown clocks only need "clockTime".  Elapsed Time Clocks need "ClockTime" and optionally will use "clockElapsedTime" if you send it (to set the End Time).  You can Rename a clock by optionally including the clockName. Type 0 is countdown, Type 1 is CountDown to Time and Type 2 is Elapsed Time.  OverRun can be modified if you choose to include that as well.
 
 ```javascript
-{"action":"clockUpdate","clockIndex":"1","clockType":"0","clockTime":"09:04:00","clockOverrun":"false","clockIsPM":"1","clockName":"Countdown 2","clockElapsedTime":"0:02:00"}
+{
+  "action":"clockUpdate",
+  "clockIndex":"1",
+  "clockType":"0",
+  "clockTime":"09:04:00",
+  "clockOverrun":"false",
+  "clockIsPM":"1",
+  "clockName":"Countdown 2",
+  "clockElapsedTime":"0:02:00"
+}
 ```
+
+* Clocks are referenced by index. See reply from "clockRequest" action above to learn indexes.
+* Not all parameters are required for each clock type.
+  * Countdown clocks only need "clockTime".
+  * Elapsed Time Clocks need "clockTime" and optionally will use "clockElapsedTime" if you send it (to set the End Time).
+  * You can rename a clock by optionally including the clockName.
+  * Type 0 is Countdown
+  * Type 1 is CountDown to Time
+  * Type 2 is Elapsed Time.
+  * Overrun can be modified if you choose to include that as well.
+
 
 ### Clear All
 
 COMMAND TO SEND:
 
 ```javascript
-{"action":"clearall"}
+{"action":"clearAll"}
 ```
 
 ### Clear Slide
@@ -913,7 +930,8 @@ COMMAND TO SEND:
 ```
 
 * Base64 Encoded Image Bytes
-* Only the Current Slide can be "Live" and live slide images are pushed to the client
+* Only the Current Slide can be "Live"
+* Live slide images are pushed to the client over the websocket.
 
 ### To Get Static Slide Images
 
