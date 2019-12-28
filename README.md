@@ -351,6 +351,12 @@ COMMAND TO SEND:
 {"action":"clockStart","clockIndex":"0"}
 ```
 
+EXPECTED RESPONSE:
+
+```javascript
+{"clockTime":"0:00:00","clockState":1,"clockIndex":0,"clockInfo":[1,1,"0:00:00"],"action":"clockStartStop"}
+```
+* `clockState` indicates if the clock is running or not
 * Clocks are referenced by index. See reply from "clockRequest" action above to learn indices.
 
 ### Stop a Clock (Timer)
@@ -360,6 +366,14 @@ COMMAND TO SEND:
 ```javascript
 {"action":"clockStop","clockIndex":"0"}
 ```
+
+EXPECTED RESPONSE:
+
+```javascript
+{"clockTime":"0:00:00","clockState":0,"clockIndex":0,"clockInfo":[1,1,"0:00:00"],"action":"clockStartStop"}
+```
+
+* `clockState` indicates if the clock is running or not
 * Clocks are referenced by index. See reply from "clockRequest" action above to learn indices.
 
 ### Reset a Clock (Timer)
@@ -461,6 +475,10 @@ EXPECTED RESPONSE:
   ]
 }
 ```
+
+* The key is everything inside the curly braces `${}` so that the key for a countdown looks like this `Countdown 1: H:MM:SS`.
+* If the key refers to a countdown, the value is used to update the `duration` field of the countdown timer, but will not perform a "reset".
+* If the key refers to a countdown and the countdown is not running, this will resume it from its current value.
 
 ### Display a Message
 
