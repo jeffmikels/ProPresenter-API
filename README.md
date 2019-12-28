@@ -224,24 +224,6 @@ COMMAND TO SEND:
 {"action":"presentationTriggerPrevious"}
 ```
 
-### Display a Message
-
-COMMAND TO SEND:
-Display a message identified by its index. Add as many key, value pairs as you like. Keys can be name of timers.
-
-```javascript
-{"action":"messageSend","messageIndex","0","messageKeys":"["key1","key2"....]","messageValues":"["Value1","Value2"...]"}
-```
-
-### Hide a Message
-
-COMMAND TO SEND:
-Hide a message identified by its index
-
-```javascript
-{"action":"messageHide","messageIndex","0"}
-```
-
 ### Start Audio Cue
 
 COMMAND TO SEND:
@@ -297,6 +279,68 @@ COMMAND TO SEND:
 {"action":"clockStopSendingCurrentTime"}
 ```
 
+### Request all Clocks
+
+COMMAND TO SEND:
+
+```javascript
+{"action":"clockRequest"}
+```
+
+EXPECTED RESPONSE:
+
+```javascript
+{
+  "clockInfo": [
+    {
+      "clockType": 0,
+      "clockState": false,
+      "clockName": "Countdown 1",
+      "clockIsPM": 0,
+      "clockDuration": "0:10:00",
+      "clockOverrun": false,
+      "clockEndTime": "--:--:--",
+      "clockTime": "--:--:--"
+    },
+    {
+      "clockType": 1,
+      "clockState": false,
+      "clockName": "Countdown 2",
+      "clockIsPM": 1,
+      "clockDuration": "7:00:00",
+      "clockOverrun": false,
+      "clockEndTime": "--:--:--",
+      "clockTime": "--:--:--"
+    },
+    {
+      "clockType": 2,
+      "clockState": false,
+      "clockName": "Elapsed Time",
+      "clockIsPM": 0,
+      "clockDuration": "0:00:00",
+      "clockOverrun": false,
+      "clockEndTime": "--:--:--",
+      "clockTime": "13:52:23"
+    }
+  ],
+  "action": "clockRequest"
+}
+```
+
+### Get Clock Current Times
+
+COMMAND TO SEND:
+
+```javascript
+{"action":"clockCurrentTimes"}
+```
+
+EXPECTED RESPONSE:
+
+```javascript
+{"action":"clockCurrentTimes","clockTimes":["0:10:00","--:--:--","13:52:23"]}
+```
+
 ### Start a Clock (Timer)
 
 COMMAND TO SEND:
@@ -305,7 +349,7 @@ COMMAND TO SEND:
 {"action":"clockStart","clockIndex":"0"}
 ```
 
-* Clocks are referenced by index. See reply from "clockRequest" action above to learn indexes.
+* Clocks are referenced by index. See reply from "clockRequest" action above to learn indices.
 
 ### Stop a Clock (Timer)
 
@@ -314,7 +358,7 @@ COMMAND TO SEND:
 ```javascript
 {"action":"clockStop","clockIndex":"0"}
 ```
-* Clocks are referenced by index. See reply from "clockRequest" action above to learn indexes.
+* Clocks are referenced by index. See reply from "clockRequest" action above to learn indices.
 
 ### Reset a Clock (Timer)
 
@@ -323,7 +367,7 @@ COMMAND TO SEND:
 ```javascript
 {"action":"clockReset","clockIndex":"0"}
 ```
-* Clocks are referenced by index. See reply from "clockRequest" action above to learn indexes.
+* Clocks are referenced by index. See reply from "clockRequest" action above to learn indices.
 
 ### Update a Clock (Timer) (eg edit time)
 
@@ -351,6 +395,96 @@ COMMAND TO SEND:
   * Type 1 is CountDown to Time
   * Type 2 is Elapsed Time.
   * Overrun can be modified if you choose to include that as well.
+
+### Start Getting Clock Updates
+
+COMMAND TO SEND:
+
+```javascript
+{"action":"clockStartSendingCurrentTime"}
+```
+
+EXPECTED RESPONSE (every second):
+
+```javascript
+{"action":"clockCurrentTimes","clockTimes":["0:10:00","--:--:--","13:52:23"]}
+```
+
+### Additional Clock Actions
+
+`clockResetAll`, `clockStopAll`, `clockStartAll`
+
+
+### Get all Messages
+
+COMMAND TO SEND:
+
+```javascript
+{"action":"messageRequest"}
+```
+
+EXPECTED RESPONSE:
+
+```javascript
+{
+  "action": "messageRequest",
+  "messages": [
+    {
+      "messageComponents": [
+        "message:",
+        "${Message}"
+      ],
+      "messageTitle": "Message"
+    },
+    {
+      "messageComponents": [
+        "Session will begin in: ",
+        "${Countdown 1: H:MM:SS}"
+      ],
+      "messageTitle": "Countdown"
+    },
+    {
+      "messageComponents": [
+        "${Message}"
+      ],
+      "messageTitle": "Message"
+    },
+    {
+      "messageComponents": [
+        "Service starts in ",
+        "${countDownTimerName_1: H:MM:SS}"
+      ],
+      "messageTitle": "Countdown"
+    }
+  ]
+}
+```
+
+### Display a Message
+
+Display a message identified by its index. Add as many key, value pairs as you like. Keys can be name of timers.
+
+COMMAND TO SEND:
+
+```javascript
+{"action":"messageSend","messageIndex":0,"messageKeys":"["key1","key2"....]","messageValues":"["Value1","Value2"...]"}
+```
+
+AN EXAMPLE USING THE DATA ABOVE:
+
+```javascript
+{"action":"messageSend","messageIndex":0,"messageKeys":["Message"],"messageValues":["Test"]}
+```
+
+### Hide a Message
+
+COMMAND TO SEND:
+Hide a message identified by its index
+
+```javascript
+{"action":"messageHide","messageIndex","0"}
+```
+
 
 
 ### Clear All
@@ -429,9 +563,6 @@ COMMAND TO SEND:
 libraryRequest 
 messageRequest 
 stageDisplaySets
-clockResetAll
-clockStopAll
-clockStartAll
 socialSendTweet
 audioRequest
 audioCurrentSong
