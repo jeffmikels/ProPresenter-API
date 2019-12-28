@@ -44,14 +44,16 @@ EXPECTED RESPONSE:
 ```javascript
 {
   "library": [
-    "/Path/To/ProPresenter/Library/Come Alive (Dry Bones).pro6",
-    "/Path/To/ProPresenter/Library/Pour Out My Heart.pro6",
-    "/Path/To/ProPresenter/Library/Away in a manger.pro6",
+    "\/Path\/To\/ProPresenter\/Library\/Come Alive (Dry Bones).pro6",
+    "\/Path\/To\/ProPresenter\/Library\/Pour Out My Heart.pro6",
+    "\/Path\/To\/ProPresenter\/Library\/Away in a manger.pro6",
 	"... ALL PRESENTATIONS IN THE LIBRARY ..."
   ],
   "action": "libraryRequest"
 }
 ```
+
+* Note the use of slashes in the response. ProPresenter expects library requests to follow this pattern exactly.
 
 ### Get All Playlists
 
