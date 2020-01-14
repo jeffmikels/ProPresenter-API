@@ -579,6 +579,14 @@ COMMAND TO SEND:
 {"action":"stageDisplayHideMessage"}
 ```
 
+### Select Stage Display Layout
+
+COMMAND TO SEND:
+
+```javascript
+{"action":"stageDisplaySetIndex","stageDisplayIndex":"[STAGE DISPLAY INDEX]"}
+```
+
 ## TODO: Complete documentation for remaining remote commands...
 libraryRequest 
 messageRequest 
@@ -615,7 +623,7 @@ EXPECTED RESPONSE:
 {"acn":"ath","ath":true,"err":""}
 ```
 
-### Get Stage Display Layout
+### Get All Stage Display Layouts
 
 COMMAND TO SEND:
 
