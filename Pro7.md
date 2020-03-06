@@ -23,9 +23,9 @@ ws://[host]:[port]/remote
 COMMAND TO SEND:
 
 ```javascript
-{"action":"authenticate","protocol":"600","password":"control"}
+{"action":"authenticate","protocol":"700","password":"control"}
 ```
-* protocol is used to perform a version check. ProPresenter 6 seems to check for a value here of at least 600 - otherwise it denies authentication and returns "Protocol out of date. Update application"
+* protocol is used to perform a version check. ProPresenter 7 seems to check for a value here of at least 700 - otherwise it denies authentication and returns "Protocol out of date. Update application"
 
 EXPECTED RESPONSE:
 
