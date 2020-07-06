@@ -23,14 +23,14 @@ ws://[host]:[port]/remote
 COMMAND TO SEND:
 
 ```javascript
-{"action":"authenticate","protocol":"600","password":"control"}
+{"action":"authenticate","protocol":"700","password":"control"}
 ```
-* protocol is used to perform a version check. ProPresenter 6 seems to check for a value here of at least 600 - otherwise it denies authentication and returns "Protocol out of date. Update application"
+* protocol is used to perform a version check. ProPresenter 7 seems to check for a value here of at least 700 - otherwise it denies authentication and returns "Protocol out of date. Update application"
 
 EXPECTED RESPONSE:
 
 ```javascript
-{"controller":1,"authenticated":1,"error":"","action":"authenticate"}
+{"controller":1,"authenticated":1,"error":"","majorVersion":7,"minorVersion":1,"action":"authenticate"}
 ```
 
 ### Get Library (all presentations)
@@ -581,18 +581,75 @@ COMMAND TO SEND:
 {"action":"stageDisplayHideMessage"}
 ```
 
+### Get Stage Display Layouts
+
+COMMAND TO SEND:
+
+```javascript
+{"action":"stageDisplaySets"}
+```
+
+EXPECTED RESPONSE:
+
+```javascript
+{
+    "stageScreens": [
+        {
+            "stageScreenName": "Stage Screen",
+            "stageScreenUUID": "8e383232-2a89-4802-a507-93c09642fa68",
+            "stageLayoutSelectedLayoutUUID": "54cc1c01-606c-434f-ad02-91b090d8ea41"
+        }
+    ],
+    "stageLayouts": [
+        {
+            "stageLayoutName": "Current/Next Stacked - Music",
+            "stageLayoutUUID": "687e061b-c3fc-48a7-be8c-40837b622fed"
+        },
+        {
+            "stageLayoutName": "Music - text only",
+            "stageLayoutUUID": "54cc1c01-606c-434f-ad02-91b090d8ea41"
+        }
+    ],
+    "action": "stageDisplaySets"
+}
+```
+
 ### Select Stage Display Layout
 
 COMMAND TO SEND:
 
 ```javascript
-{"action":"stageDisplaySetIndex","stageDisplayIndex":"[STAGE DISPLAY INDEX]"}
+{"action":"stageDisplayChangeLayout","stageLayoutUUID":"687e061b-c3fc-48a7-be8c-40837b622fed","stageScreenUUID":"8e383232-2a89-4802-a507-93c09642fa68"}
+```
+
+EXPECTED RESPONSE:
+
+```javascript
+{
+    "stageScreens": [
+        {
+            "stageScreenName": "Stage Screen",
+            "stageScreenUUID": "8e383232-2a89-4802-a507-93c09642fa68",
+            "stageLayoutSelectedLayoutUUID": "687e061b-c3fc-48a7-be8c-40837b622fed"
+        }
+    ],
+    "stageLayouts": [
+        {
+            "stageLayoutName": "Current/Next Stacked - Music",
+            "stageLayoutUUID": "687e061b-c3fc-48a7-be8c-40837b622fed"
+        },
+        {
+            "stageLayoutName": "Music - text only",
+            "stageLayoutUUID": "54cc1c01-606c-434f-ad02-91b090d8ea41"
+        }
+    ],
+    "action": "stageDisplaySets"
+}
 ```
 
 ## TODO: Complete documentation for remaining remote commands...
 libraryRequest 
 messageRequest 
-stageDisplaySets
 socialSendTweet
 audioRequest
 audioCurrentSong
