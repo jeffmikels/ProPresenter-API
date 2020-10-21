@@ -3,9 +3,9 @@
 # ProPresenter-API
 Documenting RenewedVision's undocumented network protocols with examples
 
-This document refers to *ProPresenter 6*.
+This document refers to *ProPresenter 7*.
 
-Both the Remote Control and the Stage Display protocols are unencrypted text-based websocket connections from the client to the ProPresenter instance.
+Both the Remote Control and the Stage Display protocols are unencrypted text-based WebSocket connections from the client App to the ProPresenter instance.
 
 Note, if both the Remote Control and the Stage Display interface are enabled in ProPresenter, they both operate over the *Remote Control* network port.
 
@@ -33,7 +33,9 @@ EXPECTED RESPONSE:
 {"controller":1,"authenticated":1,"error":"","majorVersion":7,"minorVersion":1,"action":"authenticate"}
 ```
 
-### Get Library (all presentations)
+* authenticated should be 1 when sucessful and 0 when failed. The application version numbers are included in this response.
+
+### Get Library (all presentations in all libraries)
 
 COMMAND TO SEND:
 
@@ -41,7 +43,7 @@ COMMAND TO SEND:
 {"action":"libraryRequest"}
 ```
 
-EXPECTED RESPONSE:
+EXPECTED RESPONSE (MacOS):
 
 ```javascript
 {
@@ -49,13 +51,28 @@ EXPECTED RESPONSE:
     "\/Path\/To\/ProPresenter\/Library\/Come Alive (Dry Bones).pro6",
     "\/Path\/To\/ProPresenter\/Library\/Pour Out My Heart.pro6",
     "\/Path\/To\/ProPresenter\/Library\/Away in a manger.pro6",
-	"... ALL PRESENTATIONS IN THE LIBRARY ..."
+	"... ALL PRESENTATIONS IN ALL LIBRARIES AS A SINGLE LIST ..."
   ],
   "action": "libraryRequest"
 }
 ```
 
 * Note the use of slashes in the response. ProPresenter expects library requests to follow this pattern exactly.
+
+EXPECTED RESPONSE (Windows):
+
+```javascript
+{
+  "library": [
+        "C:/Users/media/Documents/ProPresenter/Libraries/Default/Alive.pro",
+        "C:/Users/media/Documents/ProPresenter/Libraries/Default/All Because of Jesus.pro",
+        "C:/Users/media/Documents/ProPresenter/Libraries/Sample/Announcements.pro",
+        "C:/Users/media/Documents/ProPresenter/Libraries/Sample/Another In The Fire.pro",
+	"... ALL PRESENTATIONS IN ALL LIBRARIES AS A SINGLE LIST ..."
+  ],
+  "action": "libraryRequest"
+}
+```
 
 ### Get All Playlists
 
@@ -112,6 +129,8 @@ This request returns all playlists according to the following format.
   "action": "playlistRequestAll"
 }
 ```
+
+playlistItemThumbnail will be included for some items - these will be Base64 encoded Jpegs
 
 ### Request Presentation (set of slides)
 
@@ -233,8 +252,9 @@ COMMAND TO SEND:
 COMMAND TO SEND:
 
 ```javascript
-{"action":"audioStartCue", "audioChildPath","[Same as Presentation Path Format]"}
+{"action":"audioStartCue", "audioChildPath":"[Same as Presentation Path Format]", "audioPath":"0"}
 ```
+TODO: describe audioPath paramter required for Pro7 on MacOS
 
 ### Audio Play/Pause Toggle
 
