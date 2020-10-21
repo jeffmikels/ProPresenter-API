@@ -9,6 +9,8 @@ Both the Remote Control and the Stage Display protocols are unencrypted text-bas
 
 Note, if both the Remote Control and the Stage Display interface are enabled in ProPresenter, they both operate over the *Remote Control* network port.
 
+**Warning:** Be careful! It's easy to CRASH ProPresenter when sending invalid messages!
+
 ## Remote Control
 
 
@@ -201,6 +203,7 @@ Same response as `requestPresentation` except this response will include `presen
 
 * NOTE: This action only seems to work if there is an *active slide*. When ProPresenter starts, no slide is marked active, so this action *returns nothing until a slide has been triggered*.
 
+TODO: Investigate impact of presentationSlideQuality values for Pro7 on both MacOS and Win (0 will return slides without any slide image in Pro6, but Pro7 on MacOS seems to always include them)
 
 ### Get Index of Current Slide
 
@@ -216,6 +219,7 @@ EXPECTED RESPONSE:
 ```
 
 * NOTE: The ProPresenter remote issues this action every time it issues a `presentationRequest` action.
+In Pro7, when a presentation is automatically advancing on the annoucements layer while a user is triggering slides in another presentation on the normal output layer - the index returns can sometimes *vary* between the two different presentations!
 
 ### Trigger Slide
 
@@ -668,17 +672,9 @@ EXPECTED RESPONSE:
 ```
 
 ## TODO: Complete documentation for remaining remote commands...
-libraryRequest 
-messageRequest 
-socialSendTweet
-audioRequest
-audioCurrentSong
-audioIsPlaying
-telestratorSettings
-telestratorEndEditing
-telestratorSet
-telestratorUndo
-telestratorNew
+audioRequest (Get audio Playlist)
+audioCurrentSong (Get current audio playing)
+audioIsPlaying (Seems to always return true from MacOS when an image background is triggered)
 
 ## Stage Display API
 
