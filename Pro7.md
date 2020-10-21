@@ -235,6 +235,8 @@ EXPECTED RESPONSE:
 {"slideIndex":3,"action":"presentationTriggerIndex","presentationPath":"[PRESENTATION PATH]"}
 ```
 
+presentationTriggerIndex messages are sent to all connected clients to inform them all when a slide is triggered (if a user triggers a slide, you will get this message sent to you)
+
 ### Trigger Next Slide
 
 COMMAND TO SEND:
