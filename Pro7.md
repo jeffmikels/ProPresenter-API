@@ -3,7 +3,7 @@
 # ProPresenter-API
 Documenting RenewedVision's undocumented network protocols with examples
 
-This document refers to *ProPresenter 6*.
+This document should refer to *ProPresenter 7*.
 
 Both the Remote Control and the Stage Display protocols are unencrypted text-based websocket connections from the client to the ProPresenter instance.
 
