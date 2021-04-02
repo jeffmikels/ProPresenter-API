@@ -1,16 +1,21 @@
 **This is copied from the Pro6 Documentation. Items need to be updated for Pro7**
 
+TODO: Pro7.4.2 now adds presentationDestination field to actions (like next and previous slide). Investigate and update. {"action":"presentationTriggerNext","presentationDestination":"0"}
+"presentationTriggerIndex" still works fine without needing a "presentationDestination"
+
 # ProPresenter-API
+
 Documenting RenewedVision's undocumented network protocols with examples
 
-This document should refer to *ProPresenter 7*.
+This document refers to _ProPresenter 7_.
 
-Both the Remote Control and the Stage Display protocols are unencrypted text-based websocket connections from the client to the ProPresenter instance.
+Both the Remote Control and the Stage Display protocols are unencrypted text-based WebSocket connections from the client App to the ProPresenter instance.
 
-Note, if both the Remote Control and the Stage Display interface are enabled in ProPresenter, they both operate over the *Remote Control* network port.
+Note, if both the Remote Control and the Stage Display interface are enabled in ProPresenter, they both operate over the _Remote Control_ network port.
+
+**Warning:** Be careful! It's easy to CRASH ProPresenter when sending invalid messages!
 
 ## Remote Control
-
 
 ### Connecting
 
@@ -25,7 +30,8 @@ COMMAND TO SEND:
 ```javascript
 {"action":"authenticate","protocol":"700","password":"control"}
 ```
-* protocol is used to perform a version check. ProPresenter 7 seems to check for a value here of at least 700 - otherwise it denies authentication and returns "Protocol out of date. Update application"
+
+-   protocol is used to perform a version check. ProPresenter 7 seems to check for a value here of at least 700 - otherwise it denies authentication and returns "Protocol out of date. Update application"
 
 EXPECTED RESPONSE:
 
@@ -33,7 +39,9 @@ EXPECTED RESPONSE:
 {"controller":1,"authenticated":1,"error":"","majorVersion":7,"minorVersion":1,"action":"authenticate"}
 ```
 
-### Get Library (all presentations)
+-   authenticated should be 1 when sucessful and 0 when failed. The application version numbers are included in this response.
+
+### Get Library (all presentations in all libraries)
 
 COMMAND TO SEND:
 
@@ -41,7 +49,7 @@ COMMAND TO SEND:
 {"action":"libraryRequest"}
 ```
 
-EXPECTED RESPONSE:
+EXPECTED RESPONSE (MacOS):
 
 ```javascript
 {
@@ -49,13 +57,28 @@ EXPECTED RESPONSE:
     "\/Path\/To\/ProPresenter\/Library\/Come Alive (Dry Bones).pro6",
     "\/Path\/To\/ProPresenter\/Library\/Pour Out My Heart.pro6",
     "\/Path\/To\/ProPresenter\/Library\/Away in a manger.pro6",
-	"... ALL PRESENTATIONS IN THE LIBRARY ..."
+	"... ALL PRESENTATIONS IN ALL LIBRARIES AS A SINGLE LIST ..."
   ],
   "action": "libraryRequest"
 }
 ```
 
-* Note the use of slashes in the response. ProPresenter expects library requests to follow this pattern exactly.
+-   Note the use of slashes in the response. ProPresenter expects library requests to follow this pattern exactly.
+
+EXPECTED RESPONSE (Windows):
+
+```javascript
+{
+  "library": [
+        "C:/Users/media/Documents/ProPresenter/Libraries/Default/Alive.pro",
+        "C:/Users/media/Documents/ProPresenter/Libraries/Default/All Because of Jesus.pro",
+        "C:/Users/media/Documents/ProPresenter/Libraries/Sample/Announcements.pro",
+        "C:/Users/media/Documents/ProPresenter/Libraries/Sample/Another In The Fire.pro",
+	"... ALL PRESENTATIONS IN ALL LIBRARIES AS A SINGLE LIST ..."
+  ],
+  "action": "libraryRequest"
+}
+```
 
 ### Get All Playlists
 
@@ -113,6 +136,8 @@ This request returns all playlists according to the following format.
 }
 ```
 
+playlistItemThumbnail will be included for some items - these will be Base64 encoded Jpegs
+
 ### Request Presentation (set of slides)
 
 COMMAND TO SEND:
@@ -125,12 +150,12 @@ COMMAND TO SEND:
 }
 ```
 
-* `presentationPath` is required and it can be structured in one of three ways
-  * It can be a full path to a pro6 file but note that all slashes need to be preceeded by a backslash in the request.
-  * It can be the basename of a presentation that exists in the library (eg. `Song 1 Title.pro6`) is (sometimes?) good enough.
-  * It can be the "playlist location" of the presentation. The playlist location is determined according to the order of items in the playlist window, the items are indexed from 0, and groups are sub-indexed with a dot, then presentations inside the playlist are indexed with a colon and a numeral. That is, the first presentation of the first playlist is `0:0` and if the first playlist item is a group, the first item of the first playlist of that group is `0.0:0`
-  * A presentationPath specified with a playlist address and not a filename seems to be the most reliable.
-* `presentationSlideQuality` is optional. It determines the resolution / size of the slide previews sent from ProPresenter. If left blank, high quality previews will be sent. If set to `0` previews will not be generated at all. The remote app asks for quality `25` first and then follows it up with a second request for quality `100`.
+-   `presentationPath` is required and it can be structured in one of three ways
+    -   It can be a full path to a pro6 file but note that all slashes need to be preceeded by a backslash in the request.
+    -   It can be the basename of a presentation that exists in the library (eg. `Song 1 Title.pro6`) is (sometimes?) good enough.
+    -   It can be the "playlist location" of the presentation. The playlist location is determined according to the order of items in the playlist window, the items are indexed from 0, and groups are sub-indexed with a dot, then presentations inside the playlist are indexed with a colon and a numeral. That is, the first presentation of the first playlist is `0:0` and if the first playlist item is a group, the first item of the first playlist of that group is `0.0:0`
+    -   A presentationPath specified with a playlist address and not a filename seems to be the most reliable.
+-   `presentationSlideQuality` is optional. It determines the resolution / size of the slide previews sent from ProPresenter. If left blank, high quality previews will be sent. If set to `0` previews will not be generated at all. The remote app asks for quality `25` first and then follows it up with a second request for quality `100`.
 
 EXPECTED RESPONSE:
 
@@ -164,9 +189,9 @@ EXPECTED RESPONSE:
 }
 ```
 
-* The response contains `presentationCurrent` as the action instead of `presentationRequest`. This seems to be a bug in the ProPresenter response.
-* The `presentationCurrentLocation` is not the location of the presentation you requested. It is the path of the presentation whose slide is currently active.
-* You can distinguish this response from the real `presentationCurrent` request because that response will include `presentationPath` as a field at the root level of the response.
+-   The response contains `presentationCurrent` as the action instead of `presentationRequest`. This seems to be a bug in the ProPresenter response.
+-   The `presentationCurrentLocation` is not the location of the presentation you requested. It is the path of the presentation whose slide is currently active.
+-   You can distinguish this response from the real `presentationCurrent` request because that response will include `presentationPath` as a field at the root level of the response.
 
 ### Request Current Presentation
 
@@ -180,8 +205,9 @@ EXPECTED RESPONSE:
 
 Same response as `requestPresentation` except this response will include `presentationPath` as a field at the root level of the response.
 
-* NOTE: This action only seems to work if there is an *active slide*. When ProPresenter starts, no slide is marked active, so this action *returns nothing until a slide has been triggered*.
+-   NOTE: This action only seems to work if there is an _active slide_. When ProPresenter starts, no slide is marked active, so this action _returns nothing until a slide has been triggered_.
 
+TODO: Investigate impact of presentationSlideQuality values for Pro7 on both MacOS and Win (0 will return slides without any slide image in Pro6, but Pro7 on MacOS seems to always include them)
 
 ### Get Index of Current Slide
 
@@ -190,13 +216,15 @@ COMMAND TO SEND:
 ```javascript
 {"action":"presentationSlideIndex"}
 ```
+
 EXPECTED RESPONSE:
 
 ```javascript
 {"action":"presentationSlideIndex","slideIndex":"0"}
 ```
 
-* NOTE: The ProPresenter remote issues this action every time it issues a `presentationRequest` action.
+-   NOTE: The ProPresenter remote issues this action every time it issues a `presentationRequest` action.
+    In Pro7, when a presentation is automatically advancing on the annoucements layer while a user is triggering slides in another presentation on the normal output layer - the index returns can sometimes _vary_ between the two different presentations!
 
 ### Trigger Slide
 
@@ -211,6 +239,8 @@ EXPECTED RESPONSE:
 ```javascript
 {"slideIndex":3,"action":"presentationTriggerIndex","presentationPath":"[PRESENTATION PATH]"}
 ```
+
+presentationTriggerIndex messages are sent to all connected clients to inform them all when a slide is triggered (if a user triggers a slide, you will get this message sent to you)
 
 ### Trigger Next Slide
 
@@ -233,8 +263,10 @@ COMMAND TO SEND:
 COMMAND TO SEND:
 
 ```javascript
-{"action":"audioStartCue", "audioChildPath","[Same as Presentation Path Format]"}
+{"action":"audioStartCue", "audioChildPath":"[Same as Presentation Path Format]", "audioPath":"0"}
 ```
+
+TODO: describe audioPath paramter required for Pro7 on MacOS
 
 ### Audio Play/Pause Toggle
 
@@ -267,6 +299,7 @@ COMMAND TO SEND:
 ```javascript
 {"action":"clockRequest"}
 ```
+
 ### Start Recieving Updates for Clocks (Timers)
 
 COMMAND TO SEND:
@@ -358,8 +391,9 @@ EXPECTED RESPONSE:
 ```javascript
 {"clockTime":"0:00:00","clockState":1,"clockIndex":0,"clockInfo":[1,1,"0:00:00"],"action":"clockStartStop"}
 ```
-* `clockState` indicates if the clock is running or not
-* Clocks are referenced by index. See reply from "clockRequest" action above to learn indices.
+
+-   `clockState` indicates if the clock is running or not
+-   Clocks are referenced by index. See reply from "clockRequest" action above to learn indices.
 
 ### Stop a Clock (Timer)
 
@@ -375,8 +409,8 @@ EXPECTED RESPONSE:
 {"clockTime":"0:00:00","clockState":0,"clockIndex":0,"clockInfo":[1,1,"0:00:00"],"action":"clockStartStop"}
 ```
 
-* `clockState` indicates if the clock is running or not
-* Clocks are referenced by index. See reply from "clockRequest" action above to learn indices.
+-   `clockState` indicates if the clock is running or not
+-   Clocks are referenced by index. See reply from "clockRequest" action above to learn indices.
 
 ### Reset a Clock (Timer)
 
@@ -385,7 +419,8 @@ COMMAND TO SEND:
 ```javascript
 {"action":"clockReset","clockIndex":"0"}
 ```
-* Clocks are referenced by index. See reply from "clockRequest" action above to learn indices.
+
+-   Clocks are referenced by index. See reply from "clockRequest" action above to learn indices.
 
 ### Update a Clock (Timer) (eg edit time)
 
@@ -404,15 +439,15 @@ COMMAND TO SEND:
 }
 ```
 
-* Clocks are referenced by index. See reply from "clockRequest" action above to learn indexes.
-* Not all parameters are required for each clock type.
-  * Countdown clocks only need "clockTime".
-  * Elapsed Time Clocks need "clockTime" and optionally will use "clockElapsedTime" if you send it (to set the End Time).
-  * You can rename a clock by optionally including the clockName.
-  * Type 0 is Countdown
-  * Type 1 is CountDown to Time
-  * Type 2 is Elapsed Time.
-  * Overrun can be modified if you choose to include that as well.
+-   Clocks are referenced by index. See reply from "clockRequest" action above to learn indexes.
+-   Not all parameters are required for each clock type.
+    -   Countdown clocks only need "clockTime".
+    -   Elapsed Time Clocks need "clockTime" and optionally will use "clockElapsedTime" if you send it (to set the End Time).
+    -   You can rename a clock by optionally including the clockName.
+    -   Type 0 is Countdown
+    -   Type 1 is CountDown to Time
+    -   Type 2 is Elapsed Time.
+    -   Overrun can be modified if you choose to include that as well.
 
 ### Start Getting Clock Updates
 
@@ -431,7 +466,6 @@ EXPECTED RESPONSE (every second):
 ### Additional Clock Actions
 
 `clockResetAll`, `clockStopAll`, `clockStartAll`
-
 
 ### Get all Messages
 
@@ -478,9 +512,9 @@ EXPECTED RESPONSE:
 }
 ```
 
-* The key is everything inside the curly braces `${}` so that the key for a countdown looks like this `Countdown 1: H:MM:SS`.
-* If the key refers to a countdown, the value is used to update the `duration` field of the countdown timer, but will not perform a "reset".
-* If the key refers to a countdown and the countdown is not running, this will resume it from its current value.
+-   The key is everything inside the curly braces `${}` so that the key for a countdown looks like this `Countdown 1: H:MM:SS`.
+-   If the key refers to a countdown, the value is used to update the `duration` field of the countdown timer, but will not perform a "reset".
+-   If the key refers to a countdown and the countdown is not running, this will resume it from its current value.
 
 ### Display a Message
 
@@ -506,8 +540,6 @@ Hide a message identified by its index
 ```javascript
 {"action":"messageHide","messageIndex","0"}
 ```
-
-
 
 ### Clear All
 
@@ -648,17 +680,10 @@ EXPECTED RESPONSE:
 ```
 
 ## TODO: Complete documentation for remaining remote commands...
-libraryRequest 
-messageRequest 
-socialSendTweet
-audioRequest
-audioCurrentSong
-audioIsPlaying
-telestratorSettings
-telestratorEndEditing
-telestratorSet
-telestratorUndo
-telestratorNew
+
+audioRequest (Get audio Playlist)
+audioCurrentSong (Get current audio playing)
+audioIsPlaying (Seems to always return true from MacOS when an image background is triggered)
 
 ## Stage Display API
 
@@ -995,36 +1020,36 @@ EXPECTED RESPONSE:
 }
 ```
 
-* `acn` of `asl` means "all stage layouts"
-* `ary` indicates array of stage layouts
-* `nme` indicates layout name
-* `ovr` indicates if overrun color should be used
-* `oCl` indicates color for timer overruns
-* `brd` indicates if borders and labels should be used
-* `uid` indicates layout uid
-* `zro` indicates if zeroes should be removed from times
-* `fme` indicates array of frame layout specifications
-* frame positions are indicated by `ufr` and specified in terms of screen percentages
-* frame name is indicated by `nme`
-* frame text color is indicated by `tCl`
-* frame font size is indicated by `tSz`
-* frame message flash color is indicated by `fCl`
-* frame use message flash indicated by `fCh`
-* frame timer uid is indicated by `uid`
-* frame mode is indicated by `mde`
-  * mode 0: static image
-  * mode 1: text
-  * mode 2: live slide
-* frame type is indicated by `typ` and determines what content goes in this frame
-  * type 1: current slide
-  * type 2: next slide
-  * type 3: current slide notes
-  * type 4: next slide notes
-  * type 5: Stage Message (uses message flash values)
-  * type 6: Clock
-  * type 7: Timer Display (uses `uid` to specify timer)
-  * type 8: Video Countdown
-  * type 9: Chord Chart
+-   `acn` of `asl` means "all stage layouts"
+-   `ary` indicates array of stage layouts
+-   `nme` indicates layout name
+-   `ovr` indicates if overrun color should be used
+-   `oCl` indicates color for timer overruns
+-   `brd` indicates if borders and labels should be used
+-   `uid` indicates layout uid
+-   `zro` indicates if zeroes should be removed from times
+-   `fme` indicates array of frame layout specifications
+-   frame positions are indicated by `ufr` and specified in terms of screen percentages
+-   frame name is indicated by `nme`
+-   frame text color is indicated by `tCl`
+-   frame font size is indicated by `tSz`
+-   frame message flash color is indicated by `fCl`
+-   frame use message flash indicated by `fCh`
+-   frame timer uid is indicated by `uid`
+-   frame mode is indicated by `mde`
+    -   mode 0: static image
+    -   mode 1: text
+    -   mode 2: live slide
+-   frame type is indicated by `typ` and determines what content goes in this frame
+    -   type 1: current slide
+    -   type 2: next slide
+    -   type 3: current slide notes
+    -   type 4: next slide notes
+    -   type 5: Stage Message (uses message flash values)
+    -   type 6: Clock
+    -   type 7: Timer Display (uses `uid` to specify timer)
+    -   type 8: Video Countdown
+    -   type 9: Chord Chart
 
 ### On New Stage Display Selected
 
@@ -1113,7 +1138,7 @@ EXPECTED RESPONSE:
 }
 ```
 
-* `acn` of `sl` indicates this is a single stage layout
+-   `acn` of `sl` indicates this is a single stage layout
 
 ### Request Current Stage Display Layout
 
@@ -1147,9 +1172,9 @@ COMMAND TO SEND:
 }
 ```
 
-* Base64 Encoded Image Bytes
-* Only the Current Slide can be "Live"
-* Live slide images are pushed to the client over the websocket.
+-   Base64 Encoded Image Bytes
+-   Only the Current Slide can be "Live"
+-   Live slide images are pushed to the client over the websocket.
 
 ### To Get Static Slide Images
 
