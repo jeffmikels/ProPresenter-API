@@ -1,0 +1,7 @@
+{
+	"HOST"     : "localhost",
+	"PORT"     : "60157",
+	"CONTROL_PASSWORD" : "control",
+	"OBSERVE_PASSWORD" : "observe",
+	"STAGEDISPLAY_PASSWORD" : "stagedisplay"
+}
