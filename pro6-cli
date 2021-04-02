@@ -4,7 +4,7 @@ import json
 import sys
 import websocket
 
-HOST='localhost:59399'
+HOST='localhost:45678'
 PASSWORD='control'
 wsurl = "ws://{}/remote".format(HOST)
 
@@ -36,6 +36,7 @@ class Pro6:
 			self.ws.on_error = on_error
 			self.ws.on_close = on_close
 			self.ws.on_open = on_open
+			self.authenticate()
 			self.ws.run_forever()
 		
 		else:
