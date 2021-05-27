@@ -13,7 +13,7 @@ https://github.com/utopiantools/node-propresenter.git
 or 
 
 ```
-npm install @utopian/propresenter
+npm install https://github.com/utopiantools/node-propresenter.git
 ```
 
 For an example of a real app built with node.js that uses this API to turn ProPresenter into a universal remote control:
