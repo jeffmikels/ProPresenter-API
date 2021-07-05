@@ -28,15 +28,17 @@ ws://[host]:[port]/remote
 COMMAND TO SEND:
 
 ```javascript
-{"action":"authenticate","protocol":"700","password":"control"}
+{"action":"authenticate","protocol":"701","password":"control"}
 ```
 
--   protocol is used to perform a version check. ProPresenter 7 seems to check for a value here of at least 700 - otherwise it denies authentication and returns "Protocol out of date. Update application"
+-   protocol is used to perform a version check.
+-   ProPresenter 7.0 - 7.4.1 checks for a value here of at least 700 - otherwise it denies authentication and returns "Protocol out of date. Update application"
+-   ProPresenter 7.4.2 and later checks for a value here of at least 701 - otherwise it denies authentication and returns "Protocol out of date. Update application"
 
 EXPECTED RESPONSE:
 
 ```javascript
-{"controller":1,"authenticated":1,"error":"","majorVersion":7,"minorVersion":1,"action":"authenticate"}
+{"controller":1,"authenticated":1,"error":"","majorVersion":7,"minorVersion":6,"action":"authenticate"}
 ```
 
 -   authenticated should be 1 when sucessful and 0 when failed. The application version numbers are included in this response.
