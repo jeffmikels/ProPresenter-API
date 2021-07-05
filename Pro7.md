@@ -1,9 +1,4 @@
-**This is copied from the Pro6 Documentation. Items need to be updated for Pro7**
-
-TODO: Pro7.4.2 now adds presentationDestination field to actions (like next and previous slide). Investigate and update. {"action":"presentationTriggerNext","presentationDestination":"0"}
-"presentationTriggerIndex" still works fine without needing a "presentationDestination"
-
-# ProPresenter-API
+# ProPresenter7-API
 
 Documenting RenewedVision's undocumented network protocols with examples
 
