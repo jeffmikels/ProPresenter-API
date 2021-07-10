@@ -1,9 +1,4 @@
-**This is copied from the Pro6 Documentation. Items need to be updated for Pro7**
-
-TODO: Pro7.4.2 now adds presentationDestination field to actions (like next and previous slide). Investigate and update. {"action":"presentationTriggerNext","presentationDestination":"0"}
-"presentationTriggerIndex" still works fine without needing a "presentationDestination"
-
-# ProPresenter-API
+# ProPresenter7-API
 
 Documenting RenewedVision's undocumented network protocols with examples
 
@@ -28,18 +23,93 @@ ws://[host]:[port]/remote
 COMMAND TO SEND:
 
 ```javascript
-{"action":"authenticate","protocol":"700","password":"control"}
+{"action":"authenticate","protocol":"701","password":"control"}
 ```
 
--   protocol is used to perform a version check. ProPresenter 7 seems to check for a value here of at least 700 - otherwise it denies authentication and returns "Protocol out of date. Update application"
+-   Once connected, you must authenticate first before sending any other messages.
+-   The value of the protocol parameter is used to perform a version check on the remote client.
+-   ProPresenter 7.0 - 7.4.1 checks for a value here of at least 700 - otherwise it denies authentication and returns "Protocol out of date. Update application"
+-   ProPresenter 7.4.2 and later checks for a value here of at least 701 - otherwise it denies authentication and returns "Protocol out of date. Update application"
 
 EXPECTED RESPONSE:
 
 ```javascript
-{"controller":1,"authenticated":1,"error":"","majorVersion":7,"minorVersion":1,"action":"authenticate"}
+{"controller":1,"authenticated":1,"error":"","majorVersion":7,"minorVersion":6,"action":"authenticate"}
 ```
 
 -   authenticated should be 1 when sucessful and 0 when failed. The application version numbers are included in this response.
+
+### Trigger a Pro7 Macro
+```javascript
+{"action":"macrosTrigger","macroName":"<Case-Sensitive, Name of Macro To Trigger>"}
+or
+{"action":"macrosTrigger","macroID":"<Internal ID of Macro To Trigger>"}
+or
+{"action":"macrosTrigger","macroIndex":<Zero-Based, Index of Macro To Trigger>}
+```
+-   You can optionally send a macrosTrigger action that includes multiple identifier parameters, they are handled in the following order of precedence:
+1. macroID
+2. macroName
+3. macroIndex
+
+### Request list of all Pro7 Macros
+```javascript
+{"action":"macrosRequest"}
+```
+EXPECTED RESPONSE:
+```javascript
+{
+	"action": "macrosRequest",
+	"macros": [
+		{
+			"macroName": "<Case-sensitive name of Macro>",
+			"macroID": "<Internal ID of Macro>",
+			"macroColor": "<red> <green> <blue>",
+			"macroIndex": <Zero-based index of Macro>
+		}
+	]
+}
+```
+-   Return a list of all Macros.
+-   Color is provided as three double values separated by spaces: "r g b"
+
+### Trigger a Pro7 Look
+```javascript
+{"action":"looksTrigger","lookName":"<Case-Sensitive, Name of Look To Trigger>"}
+or
+{"action":"looksTrigger","lookID":"<Internal ID of Look To Trigger>"}
+or
+{"action":"looksTrigger","lookIndex":<Zero-Based, Index of Look To Trigger>}
+```
+-   Triggering a Pro7 Look makes that Look "Live"
+-   You can optionally send a looksTrigger action that includes multiple identifier parameters, they are handled in the following order of precedence:
+1. lookID
+2. lookName
+3. lookIndex
+
+### Request list of all Pro7 Looks
+```javascript
+{"action": "looksRequest"}
+```
+EXPECTED RESPONSE:
+```javascript
+{
+	"action": "looksRequest",
+	"looks": [
+		{
+			"lookName": "<Case sensitive name of Look>",
+			"lookID": "<Internal ID of Look>",
+			"lookIndex": <Zero based index of Look>
+		}
+	],
+	"activeLook": {
+		"lookName": "<name>",
+		"lookID": "<identifier>"
+	}
+}
+```
+-   Return a list of all Looks.
+-   Includes the currently active Look (activeLook)
 
 ### Get Library (all presentations in all libraries)
 
@@ -54,9 +124,9 @@ EXPECTED RESPONSE (MacOS):
 ```javascript
 {
   "library": [
-    "\/Path\/To\/ProPresenter\/Library\/Come Alive (Dry Bones).pro6",
-    "\/Path\/To\/ProPresenter\/Library\/Pour Out My Heart.pro6",
-    "\/Path\/To\/ProPresenter\/Library\/Away in a manger.pro6",
+    "\/Path\/To\/ProPresenter\/Library\/Come Alive (Dry Bones).pro",
+    "\/Path\/To\/ProPresenter\/Library\/Pour Out My Heart.pro",
+    "\/Path\/To\/ProPresenter\/Library\/Away in a manger.pro",
 	"... ALL PRESENTATIONS IN ALL LIBRARIES AS A SINGLE LIST ..."
   ],
   "action": "libraryRequest"
@@ -145,14 +215,14 @@ COMMAND TO SEND:
 ```javascript
 {
     "action": "presentationRequest",
-    "presentationPath": "\/Path\/To\/ProPresenter\/Library\/Song 1 Title.pro6",
+    "presentationPath": "\/Path\/To\/ProPresenter\/Library\/Song 1 Title.pro",
     "presentationSlideQuality": 25
 }
 ```
 
 -   `presentationPath` is required and it can be structured in one of three ways
-    -   It can be a full path to a pro6 file but note that all slashes need to be preceeded by a backslash in the request.
-    -   It can be the basename of a presentation that exists in the library (eg. `Song 1 Title.pro6`) is (sometimes?) good enough.
+    -   It can be a full path to a pro file but note that all slashes need to be preceeded by a backslash in the request.
+    -   It can be the basename of a presentation that exists in the library (eg. `Song 1 Title.pro`) is (sometimes?) good enough.
     -   It can be the "playlist location" of the presentation. The playlist location is determined according to the order of items in the playlist window, the items are indexed from 0, and groups are sub-indexed with a dot, then presentations inside the playlist are indexed with a colon and a numeral. That is, the first presentation of the first playlist is `0:0` and if the first playlist item is a group, the first item of the first playlist of that group is `0.0:0`
     -   A presentationPath specified with a playlist address and not a filename seems to be the most reliable.
 -   `presentationSlideQuality` is optional. It determines the resolution / size of the slide previews sent from ProPresenter. If left blank, high quality previews will be sent. If set to `0` previews will not be generated at all. The remote app asks for quality `25` first and then follows it up with a second request for quality `100`.
