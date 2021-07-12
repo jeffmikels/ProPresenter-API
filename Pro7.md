@@ -1,14 +1,33 @@
 # ProPresenter7-API
 
-Documenting RenewedVision's undocumented network protocols with examples
+Documenting RenewedVision's undocumented network protocols with examples.
 
 This document refers to _ProPresenter 7_.
 
+**Warning:** Be careful! It's easy to CRASH ProPresenter when sending invalid messages!
+
 Both the Remote Control and the Stage Display protocols are unencrypted text-based WebSocket connections from the client App to the ProPresenter instance.
 
-Note, if both the Remote Control and the Stage Display interface are enabled in ProPresenter, they both operate over the _Remote Control_ network port.
+## IMPORTANT DIFFERENCE FROM PRO 6
+Pro 7 implements a slightly different WebSocket protocol that most websocket clients should handle transparently; however, in rare cases this implementation can cause problems for developers. Of note is that the protocol requires two http request headers to be included in addition to the standard WebSocket upgrade headers.
 
-**Warning:** Be careful! It's easy to CRASH ProPresenter when sending invalid messages!
+`Sec-WebSocket-Key` and `Sec-WebSocket-Version`
+
+The key must be a Base64 encoded key similar to this: `a8STpzZ6qXqaQvnHNehseA==`
+
+The Version must be at least 13.
+
+Note also that Pro7 incorrectly expects the HTTP header keys to appear in CamelCase which violates the HTTP spec, but nonetheless is what it is.
+
+Therefore, a correctly formed connection to the Pro7 server must have headers looking like this:
+
+```
+GET /stagedisplay HTTP/1.1
+Upgrade: websocket
+Connection: Upgrade
+Sec-WebSocket-Key: /8STpzZ6qXqaQvnHNehseA==
+Sec-WebSocket-Version: 13
+```
 
 ## Remote Control
 
