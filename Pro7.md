@@ -1275,7 +1275,9 @@ http://PROPRESENTER_IP:PROPRESENTER_PORT/stage/image/SLIDE_UID
 
 EXPECTED RESPONSE:
 
-normal jpeg image
+rgba tiff image
+
+( DIFFERENCE FROM 6: Pro6 would send images as standard jpeg, but Pro7 transmits them as rgba tiff images with no content-type set in the header )
 
 ### On New Time
 
