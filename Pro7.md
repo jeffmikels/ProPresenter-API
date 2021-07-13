@@ -320,7 +320,7 @@ EXPECTED RESPONSE:
 COMMAND TO SEND:
 
 ```javascript
-{"action":"presentationTriggerIndex","slideIndex":3,"presentationPath":"[PRESENTATION PATH]"}
+{"action":"presentationTriggerIndex","slideIndex":"3","presentationPath":"[PRESENTATION PATH]"}
 ```
 
 EXPECTED RESPONSE:
@@ -328,6 +328,11 @@ EXPECTED RESPONSE:
 ```javascript
 {"slideIndex":3,"action":"presentationTriggerIndex","presentationPath":"[PRESENTATION PATH]"}
 ```
+
+NOTES:
+
+- Currently, the protocol requires SENDING the slideIndex as a string value even though the response delivers it as an integer value.
+- Also, the presentation path needs to be either a full pathname to the `.pro` file on the computer or the `playlistIndex:playlistItemIndex` style
 
 presentationTriggerIndex messages are sent to all connected clients to inform them all when a slide is triggered (if a user triggers a slide, you will get this message sent to you)
 
