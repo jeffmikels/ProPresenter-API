@@ -218,6 +218,12 @@ COMMAND TO SEND:
 {"action":"presentationTriggerNext"}
 ```
 
+EXPECTED RESPONSE:
+
+```javascript
+{"slideIndex":3,"action":"presentationTriggerIndex","presentationPath":"[PRESENTATION PATH]"}
+```
+
 ### Trigger Previous Slide
 
 COMMAND TO SEND:
@@ -226,12 +232,125 @@ COMMAND TO SEND:
 {"action":"presentationTriggerPrevious"}
 ```
 
+EXPECTED RESPONSE:
+
+```javascript
+{"slideIndex":3,"action":"presentationTriggerIndex","presentationPath":"[PRESENTATION PATH]"}
+```
+
+### Get Audio Library
+
+COMMAND TO SEND:
+
+```javascript
+{ "action": "audioRequest" }
+```
+
+EXPECTED RESPONSE:
+
+```javascript
+{
+  "action": "audioRequest",
+  "audioPlaylist": [
+    {
+      "playlistLocation": "0",
+      "playlistType": "playlistTypePlaylist",
+      "playlistName": "Library",
+      "playlist": [
+        {
+          "playlistItemName": "1-11 Have Yourself A Merry Little Christmas.mp3",
+          "playlistItemArtist": "Chinua Hawk",
+          "playlistItemType": "playlistItemTypeAudio",
+          "playlistItemLocation": "0:0"
+        }
+      ]
+    },
+    {
+      "playlistLocation": "1",
+      "playlistType": "playlistTypeGroup",
+      "playlistName": "Service End",
+      "playlist": [
+        {
+          "playlistLocation": "1.0",
+          "playlistType": "playlistTypePlaylist",
+          "playlistName": "random",
+          "playlist": [
+            {
+              "playlistItemName": "03 Black Coal.mp3",
+              "playlistItemArtist": "Sanctus Real",
+              "playlistItemType": "playlistItemTypeAudio",
+              "playlistItemLocation": "1.0:0"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "playlistLocation": "2",
+      "playlistType": "playlistTypeGroup",
+      "playlistName": "Christmas",
+      "playlist": []
+    }
+  ]
+}
+```
+
+### Get Current Song
+
+COMMAND TO SEND:
+
+```javascript
+{ "action": "audioCurrentSong" }
+```
+
+EXPECTED RESPONSE:
+
+```javascript
+{
+  "audioArtist": "",
+  "action": "audioCurrentSong",
+  "audioName": "Peaceful Instrumental - C"
+}
+```
+
+### Check if Audio is Playing (BROKEN)
+
+ProPresenter 6 always replies "false" to this request.
+
+COMMAND TO SEND:
+
+```javascript
+{ "action": "audioIsPlaying" }
+```
+
+EXPECTED RESPONSE:
+
+```javascript
+{"audioIsPlaying":false,"action":"audioIsPlaying"}
+```
+
 ### Start Audio Cue
 
 COMMAND TO SEND:
 
 ```javascript
 {"action":"audioStartCue", "audioChildPath","[Same as Presentation Path Format]"}
+```
+
+EXPECTED RESPONSE:
+
+There are multiple responses for an audio cue trigger.
+
+```javascript
+{"action":"audioPlayPause","audioPlayPause":"Play"}
+```
+
+```javascript
+{
+  "audioArtist": "",
+  "action": "audioTriggered",
+  "audioName": "Peaceful Instrumental - C"
+}
 ```
 
 ### Audio Play/Pause Toggle
@@ -505,8 +624,6 @@ Hide a message identified by its index
 {"action":"messageHide","messageIndex","0"}
 ```
 
-
-
 ### Clear All
 
 COMMAND TO SEND:
@@ -571,6 +688,8 @@ COMMAND TO SEND:
 {"action":"stageDisplaySendMessage","stageDisplayMessage":"Type a Message Here"}
 ```
 
+THERE IS NO EXPECTED RESPONSE
+
 ### Hide Stage Display Message
 
 COMMAND TO SEND:
@@ -578,6 +697,8 @@ COMMAND TO SEND:
 ```javascript
 {"action":"stageDisplayHideMessage"}
 ```
+
+THERE IS NO EXPECTED RESPONSE
 
 ### Select Stage Display Layout
 
@@ -587,14 +708,35 @@ COMMAND TO SEND:
 {"action":"stageDisplaySetIndex","stageDisplayIndex":"[STAGE DISPLAY INDEX]"}
 ```
 
-## TODO: Complete documentation for remaining remote commands...
-libraryRequest 
-messageRequest 
-stageDisplaySets
+EXPECTED RESPONSE IS THE SAME AS THE SENT COMMAND
+
+### Get Stage Display Layouts
+
+COMMAND TO SEND:
+
+```javascript
+{ "action": "stageDisplaySets" }
+```
+
+EXPECTED RESPONSE:
+
+```javascript
+{
+  "stageDisplayIndex": 4,
+  "action": "stageDisplaySets",
+  "stageDisplaySets": [
+    "Default",
+    "Easter Closer",
+    "Live Current - Static Next - no borders",
+    "Static Current - Static Next",
+    "Songs",
+    "Slides"
+  ]
+}
+```
+
+## TODO: Complete documentation for remaining remote commands... 
 socialSendTweet
-audioRequest
-audioCurrentSong
-audioIsPlaying
 telestratorSettings
 telestratorEndEditing
 telestratorSet
