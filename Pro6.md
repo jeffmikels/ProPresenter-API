@@ -384,7 +384,7 @@ COMMAND TO SEND:
 ```javascript
 {"action":"clockRequest"}
 ```
-### Start Recieving Updates for Clocks (Timers)
+### Start Receiving Updates for Clocks (Timers)
 
 COMMAND TO SEND:
 
@@ -392,7 +392,7 @@ COMMAND TO SEND:
 {"action":"clockStartSendingCurrentTime"}
 ```
 
-### Stop Recieving Updates for Clocks (Timers)
+### Stop Receiving Updates for Clocks (Timers)
 
 COMMAND TO SEND:
 
