@@ -361,7 +361,16 @@ COMMAND TO SEND:
 {"action":"audioPlayPause"}
 ```
 
-### TimeLine Play/Pause Toggle
+EXPECTED RESPONSE:
+
+```javascript
+{"action":"audioPlayPause","audioPlayPause":"Play"}
+```
+
+
+### Timeline Play/Pause Toggle
+
+Note: If Timeline commands are sent without a `presentationPath`, ProPresenter will crash.
 
 COMMAND TO SEND:
 
@@ -369,7 +378,9 @@ COMMAND TO SEND:
 {"action":"timelinePlayPause","presentationPath":"[PRESENTATION PATH]"}
 ```
 
-### TimeLine Rewind
+NO RESPONSE
+
+### Timeline Rewind
 
 COMMAND TO SEND:
 
@@ -377,30 +388,11 @@ COMMAND TO SEND:
 {"action":"timelineRewind":,"presentationPath":"[PRESENTATION PATH]"}
 ```
 
-### Get Clock (Timers) Info
+NO RESPONSE
 
-COMMAND TO SEND:
+## Clocks Data
 
-```javascript
-{"action":"clockRequest"}
-```
-### Start Receiving Updates for Clocks (Timers)
-
-COMMAND TO SEND:
-
-```javascript
-{"action":"clockStartSendingCurrentTime"}
-```
-
-### Stop Receiving Updates for Clocks (Timers)
-
-COMMAND TO SEND:
-
-```javascript
-{"action":"clockStopSendingCurrentTime"}
-```
-
-### Request all Clocks
+### Request all Clocks (timers)
 
 COMMAND TO SEND:
 
@@ -462,12 +454,32 @@ EXPECTED RESPONSE:
 {"action":"clockCurrentTimes","clockTimes":["0:10:00","--:--:--","13:52:23"]}
 ```
 
+### Start Receiving Updates for Clocks (Timers)
+
+COMMAND TO SEND:
+
+```javascript
+{"action":"clockStartSendingCurrentTime"}
+```
+
+EXPECTED RESPONSE IS SAME AS `clockCurrentTimes` (every second):
+
+### Stop Receiving Updates for Clocks (Timers)
+
+COMMAND TO SEND:
+
+```javascript
+{"action":"clockStopSendingCurrentTime"}
+```
+
+NO EXPECTED RESPONSE
+
 ### Start a Clock (Timer)
 
 COMMAND TO SEND:
 
 ```javascript
-{"action":"clockStart","clockIndex":"0"}
+{"action":"clockStart","clockIndex":0}
 ```
 
 EXPECTED RESPONSE:
@@ -483,16 +495,30 @@ EXPECTED RESPONSE:
 COMMAND TO SEND:
 
 ```javascript
-{"action":"clockStop","clockIndex":"0"}
+{"action":"clockStop","clockIndex":0}
 ```
 
 EXPECTED RESPONSE:
 
 ```javascript
-{"clockTime":"0:00:00","clockState":0,"clockIndex":0,"clockInfo":[1,1,"0:00:00"],"action":"clockStartStop"}
+{
+  "clockTime": "0:09:59",
+  "clockState": 0,
+  "clockIndex": 0,
+  "clockInfo": [
+    1,
+    0,
+    "0:09:59"
+  ],
+  "action": "clockStartStop"
+}
 ```
 
 * `clockState` indicates if the clock is running or not
+* `clockInfo` is a quick list of information:
+  * The first item is the clockType
+  * The second item is the value that was recently changed indicated by the `action`
+  * The third item is the current clock timestring.
 * Clocks are referenced by index. See reply from "clockRequest" action above to learn indices.
 
 ### Reset a Clock (Timer)
@@ -502,7 +528,19 @@ COMMAND TO SEND:
 ```javascript
 {"action":"clockReset","clockIndex":"0"}
 ```
+
+EXPECTED RESPONSE:
+
+```javascript
+{
+  "action": "clockResetIndex",
+  "clockIndex": 1
+}
+```
+
 * Clocks are referenced by index. See reply from "clockRequest" action above to learn indices.
+
+
 
 ### Update a Clock (Timer) (eg edit time)
 
@@ -511,11 +549,11 @@ COMMAND TO SEND:
 ```javascript
 {
   "action":"clockUpdate",
-  "clockIndex":"1",
-  "clockType":"0",
+  "clockIndex":1,
+  "clockType":0,
   "clockTime":"09:04:00",
-  "clockOverrun":"false",
-  "clockIsPM":"1",
+  "clockOverrun":false,
+  "clockIsPM":1,
   "clockName":"Countdown 2",
   "clockElapsedTime":"0:02:00"
 }
@@ -531,19 +569,6 @@ COMMAND TO SEND:
   * Type 2 is Elapsed Time.
   * Overrun can be modified if you choose to include that as well.
 
-### Start Getting Clock Updates
-
-COMMAND TO SEND:
-
-```javascript
-{"action":"clockStartSendingCurrentTime"}
-```
-
-EXPECTED RESPONSE (every second):
-
-```javascript
-{"action":"clockCurrentTimes","clockTimes":["0:10:00","--:--:--","13:52:23"]}
-```
 
 ### Additional Clock Actions
 
@@ -1111,6 +1136,8 @@ EXPECTED RESPONSE:
 
 ### On New Stage Display Selected
 
+EXPECTED RESPONSE:
+
 ```javascript
 {
   "brd": true,
@@ -1220,7 +1247,41 @@ COMMAND TO SEND:
 {"acn":"fv","uid":"[STAGE DISPLAY UID"}
 ```
 
+EXPECTED RESPONSE:
+
+```javascript
+{
+  "acn": "fv",
+  "ary": [
+    {
+      "acn": "cs",
+      "uid": "FAFCA1CB-8CB8-4E53-8B7C-8D61154516D0",
+      "txt": ""
+    },
+    {
+      "acn": "ns",
+      "uid": "95D16968-589A-11EB-8D62-FCAA147AEF2F",
+      "txt": ""
+    },
+    {
+      "acn": "msg",
+      "txt": ""
+    },
+    {
+      "acn": "sys",
+      "txt": " 9:51 AM"
+    },
+    {
+      "acn": "vid",
+      "txt": ""
+    }
+  ]
+}
+```
+
 ### On New Live Slide Frame
+
+EXPECTED RESPONSE:
 
 ```javascript
 {

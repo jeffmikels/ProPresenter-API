@@ -1,0 +1,148 @@
+#!/usr/bin/env python3
+
+import sys
+import yaml
+
+output = ''
+
+
+def e(s='', end='\n'):
+  global output
+  output += s + end
+
+
+def format_type(ttype):
+  if ttype not in ['bool', 'int', 'float', 'string', 'object', 'list']:
+    if type(ttype) is list:
+      retval = ''
+      for t in ttype:
+        retval += format_type(t)
+      return retval
+
+    if ttype in types:
+      link_to = ttype.lower()
+      ttype = f'[{ttype}](#{link_to})'
+    if 'list[' in ttype:
+      inner_type = ttype.replace('list[', '')[:-1]
+      link_to = inner_type.lower()
+      ttype = f'list[[{inner_type}](#{link_to})]'
+  return ttype
+
+
+if len(sys.argv) == 1:
+  print(f'''
+USAGE:
+
+{sys.argv[0]} yaml_file output_name
+
+Will parse an API yaml file to Markdown.
+  ''')
+  exit()
+
+source = sys.argv[1]
+target = source + '.md'
+target = target.replace('.yaml.md', '.md')
+target = target.replace('.yml.md', '.md')
+
+if len(sys.argv) == 3:
+  target = sys.argv[2]
+
+# read input yaml file
+with open(source, 'r') as f:
+  t = f.read()
+  data = yaml.load(t, Loader=yaml.CLoader)
+
+
+# handle metadata
+e(f'# {data["application"]}')
+e()
+e(f'{data["description"]}')
+
+# handle channels
+for channelkey in data['channels']:
+  channel = data['channels'][channelkey]
+  name = channel.get('name', channelkey).strip()
+  desc = channel['description'].strip()
+
+  e(f'\n## {name}')
+  e()
+  e(desc)
+
+  types = channel.get('types', {})
+  messages = channel.get('messages', {})
+  actions = channel.get('actions', {})
+  undocumented = channel.get('undocumented', {})
+
+  # output the typed data definitions
+  e(f'\n### {name} Types')
+  for typekey in types:
+    t = types[typekey]
+    tname = t.get('name', typekey).strip()
+    ttype = t['type']
+    tdesc = t.get('description', '').strip()
+    texample = t.get('example', '').strip()
+    formatted_type = format_type(ttype)
+
+    e(f'\n#### {tname}')
+    e(f'Base Type: {formatted_type}')
+    e()
+
+    if tdesc != '':
+      e(tdesc)
+      e()
+
+    if ttype == 'object':
+      # print(t)
+      e('##### PARAMETERS:')
+
+      for paramname in t['parameters']:
+        param = t['parameters'][paramname]
+        pdesc = f'always `{param}`'
+        pexample = ''
+        poptions = None
+        if type(param) is str:
+          ptype = 'string'
+        elif type(param) is int:
+          ptype = 'int'
+        elif type(param) is float:
+          ptype = 'float'
+        elif type(param) is bool:
+          ptype = 'bool'
+        elif type(param) is list:
+          ptype = 'list'
+          poptions = param
+        else:
+          ptype = param.get('type', 'string')
+          pdesc = param.get('description', '')
+          poptions = param.get('options', None)
+          pexample = param.get('example', '')
+
+        pformatted_type = format_type(ptype)
+        e(f'- **{paramname}** (*{pformatted_type}*)')
+        if (poptions is not None):
+          e(f'    Must be one of these: {poptions}')
+        if (pdesc != ''):
+          # need to indent every description line
+          for line in pdesc.split('\n'):
+            e(f'    {line}')
+        if (pexample != ''):
+          if ptype == 'string':
+            pexample = f'"{pexample}"'
+          if '`' not in pexample:
+            pexample = f'```{pexample}```'
+          e(f'    {pexample}')
+
+    e()
+    if texample != '':
+      if '`' not in texample:
+        texample = f'```{texample}```'
+
+      e(f'\n##### EXAMPLE:')
+      e(texample)
+    e()
+
+  # output the list of pushy messages (with anchor links)
+  # output the action messages with their responses
+  # output the response-only messages
+
+print(output)
