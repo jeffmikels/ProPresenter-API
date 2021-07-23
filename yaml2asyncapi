@@ -149,18 +149,16 @@ refs = {}
 
 # create schemas from the types in two passes.
 # pass 1 creates the type refs
-for channel in ['remote', 'stagedisplay']:
-  for typename in data['channels'][channel]['types']:
-    if typename not in refs:
-      refs[typename] = f'#/components/schemas/{typename}'
+for typename in data['types']:
+  if typename not in refs:
+    refs[typename] = f'#/components/schemas/{typename}'
 
 # pass 2 actually creates the types
-for channel in ['remote', 'stagedisplay']:
-  for typename in data['channels'][channel]['types']:
-    t = data['channels'][channel]['types'][typename]
-    # print(t)
-    schema = type_to_schema(t)
-    output['components']['schemas'][typename] = schema
+for typename in data['types']:
+  t = data['types'][typename]
+  # print(t)
+  schema = type_to_schema(t)
+  output['components']['schemas'][typename] = schema
 
 # create pub/sub messages from the message / response payloads
 for channel in ['remote', 'stagedisplay']:
