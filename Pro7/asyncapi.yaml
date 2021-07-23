@@ -1,15 +1,14 @@
 asyncapi: 2.1.0
 info:
   title: ProPresenter API
-  version: '6'
+  version: '7.6'
   description: 'Documenting RenewedVision''s undocumented network protocols with examples
 
 
-    This document refers to **ProPresenter 6.**
+    This document refers to **ProPresenter 7.6.**
 
 
     Warning: Be careful! It''s easy to CRASH ProPresenter when sending invalid messages!
-
 
 
     Both the Remote Control and the Stage Display protocols are unencrypted text-based websocket connections from the client
@@ -32,6 +31,53 @@ info:
     ```
 
     ws://[hostname]:[port]/[channel]
+
+    ```
+
+
+    ## IMPORTANT DIFFERENCE FROM PRO 6
+
+    Pro 7 implements a slightly different WebSocket protocol that most
+
+    websocket clients should handle transparently; however, in rare cases
+
+    this implementation can cause problems for developers. Of note is
+
+    that the protocol requires two HTTP request headers to be included
+
+    in addition to the standard WebSocket upgrade headers.
+
+
+    `Sec-WebSocket-Key` and `Sec-WebSocket-Version`
+
+
+    The key must be a Base64 encoded key similar to this: `a8STpzZ6qXqaQvnHNehseA==`
+
+
+    The Version must be at least 13.
+
+
+    Note also that Pro7 incorrectly expects the HTTP header keys to appear
+
+    in CamelCase which violates the HTTP spec, but nonetheless is what it is.
+
+
+    Therefore, a correctly formed connection to the Pro7 server must have
+
+    headers looking like this:
+
+
+    ```
+
+    GET /stagedisplay HTTP/1.1
+
+    Upgrade: websocket
+
+    Connection: Upgrade
+
+    Sec-WebSocket-Key: /8STpzZ6qXqaQvnHNehseA==
+
+    Sec-WebSocket-Version: 13
 
     ```
 
@@ -68,22 +114,67 @@ components:
       description: |-
         0 for false, 1 for true, (in Pro6, these sometimes show up as strings)
       type: integer
-    color:
+    colorRGB:
+      description: |
+        four space-delimited numbers describing the r,g,b values of a color
+        r,g,b values are 0-1
+      type: string
+      examples:
+      - 0.5 0.8 1
+    colorRGBA:
       description: |
         four space-delimited doubles describing the r,g,b,a values of a color from 0-1
       type: string
       examples:
       - 0.5 0.8 1 0.5
+    pro7Macro:
+      type: object
+      properties:
+        macroName:
+          description: |-
+            Case-sensitive name of macro.
+          type: string
+        macroID:
+          description: |-
+            Internal ID of macro.
+          type: string
+        macroColor:
+          $ref: '#/components/schemas/colorRGB'
+        macroIndex:
+          description: |-
+            zero-based index of macro in system.
+          type: integer
+      required:
+      - macroName
+      - macroID
+      - macroColor
+      - macroIndex
+      additionalProperties: false
+    pro7Look:
+      type: object
+      properties:
+        macroName:
+          description: |-
+            Case-sensitive name of look.
+          type: string
+        macroID:
+          description: |-
+            Internal ID of look.
+          type: string
+        macroIndex:
+          description: |-
+            zero-based index of look in system.
+          type: integer
+      required:
+      - macroName
+      - macroID
+      - macroIndex
+      additionalProperties: false
     itemLocation:
       description: |
-        A slash-escaped full pathname, file basename, or playlist location.
+        Unlike Pro6, Pro7 handles pathnames correctly without superfluous slashes.
 
-        Pathname locations need to escape the slashes BEFORE they are encoded
-        to JSON.
-
-        ```
-        \/Path\/To\/ProPresenter\/Library\/Song 1 Title.pro6
-        ```
+        Also, unlike Pro6, Pro7 always sends and expects the full pathname. No basenames here.
 
         Playlist locations are specified by a zero-based index of the playlist
         and playlist group in which the item may be found.
@@ -97,11 +188,14 @@ components:
 
         `playlist_index[.child_playlist_index[.deeper_child_index[...]]]:item`
 
-        NOTE: Pro6 supports full pathnames or basenames.
+        NOTE:
+
+        - On Mac, paths are delimited with a single forward slash `/`
+        - On Windows, paths begin with the drive letter, but then also use the forward slash delimeter
       type: string
       examples:
       - |-
-        \/Path\/To\/ProPresenter\/Library\/Song 1 Title.pro6
+        C:/Path/To/ProPresenter/Library/Song 1 Title.pro6
     presentationSlide:
       type: object
       properties:
@@ -121,10 +215,13 @@ components:
           type: string
         slideIndex:
           description: |
-            it is the zero-based index of the slide in a presentation
+            NOTE: The current version of Pro7 transmits a string value of `0`
+            for every slide in every slideGroup.
 
-            NOTE: it is sometimes transmitted as a JSON string and sometimes a JSON number
-          type: integer
+            I think this is a bug.
+
+            In Pro6, it would transmit the actual slideIndex of this slide in the presentation.
+          type: string
         slideTransitionType:
           description: |
             `-1` for default transition or another number for a different transition
@@ -132,7 +229,7 @@ components:
         slideLabel:
           type: string
         slideColor:
-          $ref: '#/components/schemas/color'
+          $ref: '#/components/schemas/colorRGBA'
       required:
       - slideEnabled
       - slideNotes
@@ -150,7 +247,7 @@ components:
         groupsummary:
           type: string
         groupColor:
-          $ref: '#/components/schemas/color'
+          $ref: '#/components/schemas/colorRGBA'
         groupSlides:
           type: array
           items:
@@ -171,6 +268,10 @@ components:
           type: string
         presentationHasTimeline:
           $ref: '#/components/schemas/boolint'
+        presentationDestination:
+          description: |-
+            The output this presentation is assigned to.
+          type: integer
         presentationCurrentLocation:
           description: |
             This field contains the location of the *currently active* presentation if there is one.
@@ -181,6 +282,7 @@ components:
       - presentationSlideGroups
       - presentationsummary
       - presentationHasTimeline
+      - presentationDestination
       - presentationCurrentLocation
       additionalProperties: false
     presentationTriggerMessage:
@@ -196,10 +298,15 @@ components:
             playlist location (i.e. `0:0`), but if it was selected from the Library directly,
             the path value will always be the *basename* only.
           $ref: '#/components/schemas/itemLocation'
+        presentationDestination:
+          description: |-
+            refers to the destination screen of the current presentation.
+          type: integer
       required:
       - action
       - slideIndex
       - presentationPath
+      - presentationDestination
       additionalProperties: false
     playlistItemType:
       type: object
@@ -216,6 +323,10 @@ components:
         playlistItemArtist:
           description: |-
             only present for playlistItemTypeAudio
+          type: string
+        playlistItemThumbnail:
+          description: |-
+            base64 encoded jpeg image, not always included.
           type: string
       required:
       - playlistItemType
@@ -274,9 +385,11 @@ components:
       - Pause
     clockTimeString:
       description: |
-        - real times are formatted as `"H:MM:SS"` (no padding on the leading H)
+        NOTE: This is different from Pro6
+
+        - real times are formatted as `"HH:MM:SS.mm"` with milliseconds
         - negative times are possible with a leading `-`.
-        - empty times are `"--:--:--"`
+        - empty times are `"00:00:00.00"`
       type: string
     clockType:
       description: |
@@ -286,7 +399,41 @@ components:
       - 0
       - 1
       - 2
+    clockFormat:
+      description: |-
+        UNKNOWN
+      type: object
+      properties:
+        clockMillisecondFormat:
+          type: integer
+        clockWallTimeFormat:
+          type: boolean
+        clockSecondFormat:
+          type: integer
+        clockTimePeriodFormat:
+          type: integer
+        clockMinuteFormat:
+          type: integer
+        clockHourForma":
+          type: integer
+      required:
+      - clockMillisecondFormat
+      - clockWallTimeFormat
+      - clockSecondFormat
+      - clockTimePeriodFormat
+      - clockMinuteFormat
+      - clockHourForma"
+      additionalProperties: false
+      examples:
+      - clockMillisecondFormat: 2
+        clockWallTimeFormat: true
+        clockSecondFormat: 2
+        clockTimePeriodFormat: 0
+        clockMinuteFormat: 2
+        clockHourForma": 2
     clockDetail:
+      description: |-
+        clockDetail is greatly expanded over Pro6
       type: object
       properties:
         clockType:
@@ -295,7 +442,7 @@ components:
           description: |-
             running is `true`, not running is `false`
           type: boolean
-        clocksummary:
+        clockName:
           type: string
         clockIsPM:
           $ref: '#/components/schemas/boolint'
@@ -309,19 +456,29 @@ components:
           description: |-
             indicates if clock should keep running after it hits the endtime.
           type: boolean
+        clockTimePeriodFormat:
+          description: |-
+            UNKNOWN
+          type: integer
+        clockFormat:
+          $ref: '#/components/schemas/clockFormat'
       required:
       - clockType
       - clockState
-      - clocksummary
+      - clockName
       - clockIsPM
       - clockTime
       - clockEndTime
       - clockDuration
       - clockOverrun
+      - clockTimePeriodFormat
+      - clockFormat
       additionalProperties: false
     clockQuickInfo:
       type: array
     clockStartStopMessage:
+      description: |-
+        Pro7 no longer sends the `clockInfo` parameter.
       type: object
       properties:
         action:
@@ -336,14 +493,11 @@ components:
           description: |-
             zero-based clock index, clock lists are in a stable order
           type: integer
-        clockInfo:
-          $ref: '#/components/schemas/clockQuickInfo'
       required:
       - action
       - clockTime
       - clockState
       - clockIndex
-      - clockInfo
       additionalProperties: false
     clockCurrentTimesMessage:
       type: object
@@ -388,6 +542,38 @@ components:
         - '${Countdown 1: H:MM:SS}'
         - .
         messageTitle: Countdown
+    stageScreenItem:
+      type: object
+      properties:
+        stageLayoutSelectedLayoutUUID:
+          type: string
+        stageScreenName:
+          type: string
+        stageScreenUUID:
+          type: string
+      required:
+      - stageLayoutSelectedLayoutUUID
+      - stageScreenName
+      - stageScreenUUID
+      additionalProperties: false
+      examples:
+      - stageLayoutSelectedLayoutUUID: 12CB7383-FA02-47BB-B501-747ADCA860D3
+        stageScreenName: Stage Screen 1
+        stageScreenUUID: 22B3B653-97AB-4371-9958-E42915C8F24A
+    stageLayoutInfo:
+      type: object
+      properties:
+        stageLayoutName:
+          type: string
+        stageLayoutUUID:
+          type: string
+      required:
+      - stageLayoutName
+      - stageLayoutUUID
+      additionalProperties: false
+      examples:
+      - stageLayoutName: Default
+        stageLayoutUUID: 753B184F-CCCD-42F9-A883-D1DF86E1FFB8
     stageDisplayFrameGeometry:
       description: "Frame Geometry is delivered in x,y coordinates based on screen percentages in the \nfollowing format:\n\
         \n`{{upper_left_x_pct, upper_left_y_pct}, {lower_right_x_pct, lower_right_y_pct}}`\n"
@@ -604,7 +790,7 @@ components:
         This is the first command ProPresenter expects to receive over the websocket.
         This command requests authentication.
 
-        For ProPresenter 6, the protocol must be `600`
+        For ProPresenter 7.4.2 and later, the protocol must be `701`
 
 
         **RELATED RESPONSE**: [authenticate (subscribe)](#message-authenticate__sub)
@@ -614,7 +800,7 @@ components:
           action:
             const: authenticate
           protocol:
-            const: 600
+            const: 701
           password:
             description: |-
               as defined in the ProPresenter network settings
@@ -627,7 +813,7 @@ components:
       examples:
       - payload:
           action: authenticate
-          protocol: 600
+          protocol: 701
           password: myGreatPassword
     authenticate__sub:
       name: authenticate__sub
@@ -637,7 +823,7 @@ components:
         This is the first command ProPresenter expects to receive over the websocket.
         This command requests authentication.
 
-        For ProPresenter 6, the protocol must be `600`
+        For ProPresenter 7.4.2 and later, the protocol must be `701`
 
 
         **RELATED COMMAND**: [authenticate (publish)](#message-authenticate__pub)
@@ -658,18 +844,202 @@ components:
             description: |-
               Does user have permission to send control messages? 1 for true, 0 for false
             $ref: '#/components/schemas/boolint'
+          majorVersion:
+            description: |-
+              For ProPresenter 7.6, this would be `7`
+            type: integer
+          minorVersion:
+            description: |-
+              For ProPresenter 7.6, this is `6`
+            type: integer
         required:
         - action
         - error
         - authenticated
         - controller
+        - majorVersion
+        - minorVersion
         additionalProperties: false
       examples:
       - payload:
           controller: 1
           authenticated: 1
           error: ''
+          majorVersion: 7
+          minorVersion: 6
           action: authenticate
+    macrosTrigger__pub:
+      name: macrosTrigger__pub
+      title: macrosTrigger (publish)
+      summary: Trigger a Macro
+      description: |-
+        Trigger a macro using `macroName`, `macroID`, or `macroIndex`, must have at least one.
+
+        If you send multiple identifier parameters, they are handled in the following order of precedence:
+
+        1. macroID
+        2. macroName
+        3. macroIndex
+
+        NO RESPONSE
+      payload:
+        type: object
+        properties:
+          action:
+            const: macrosTrigger
+          macroName:
+            description: |-
+              case-sensitive name of macro to trigger
+            type: string
+          macroID:
+            description: |-
+              internal ID of macro to trigger
+            type: string
+          macroIndex:
+            description: |-
+              zero-based index of macro to trigger
+            type: integer
+        required:
+        - action
+        additionalProperties: false
+    macrosRequest__pub:
+      name: macrosRequest__pub
+      title: macrosRequest (publish)
+      summary: Request a list of Pro7 Macros
+      description: |2
+
+
+        **RELATED RESPONSE**: [macrosRequest (subscribe)](#message-macrosRequest__sub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: macrosRequest
+        required:
+        - action
+        additionalProperties: false
+    macrosRequest__sub:
+      name: macrosRequest__sub
+      title: macrosRequest (subscribe)
+      summary: Request a list of Pro7 Macros
+      description: |2
+
+
+        **RELATED COMMAND**: [macrosRequest (publish)](#message-macrosRequest__pub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: macrosRequest
+          macros:
+            type: array
+            items:
+            - $ref: '#/components/schemas/pro7Macro'
+        required:
+        - action
+        - macros
+        additionalProperties: false
+      examples:
+      - payload:
+          action: macrosRequest
+          macros:
+          - macroName: <Case-sensitive name of Macro>
+            macroID: <Internal ID of Macro>
+            macroColor: <red> <green> <blue>
+            macroIndex: <Zero-based index of Macro>
+    looksTrigger__pub:
+      name: looksTrigger__pub
+      title: looksTrigger (publish)
+      summary: Trigger a Look
+      description: |-
+        Trigger a look. Similar to triggering a Macro.
+
+        If you send multiple identifier parameters, they are handled in the following order of precedence:
+
+        1. lookID
+        2. lookName
+        3. lookIndex
+
+        NO RESPONSE
+      payload:
+        type: object
+        properties:
+          action:
+            const: looksTrigger
+          macroName:
+            description: |-
+              case-sensitive name of look to trigger
+            type: string
+          macroID:
+            description: |-
+              internal ID of look to trigger
+            type: string
+          macroIndex:
+            description: |-
+              zero-based index of look to trigger
+            type: integer
+        required:
+        - action
+        additionalProperties: false
+    looksRequest__pub:
+      name: looksRequest__pub
+      title: looksRequest (publish)
+      summary: Request a list of Pro7 Looks
+      description: |
+        Includes the currently active Look (activeLook)
+
+        **RELATED RESPONSE**: [looksRequest (subscribe)](#message-looksRequest__sub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: looksRequest
+        required:
+        - action
+        additionalProperties: false
+    looksRequest__sub:
+      name: looksRequest__sub
+      title: looksRequest (subscribe)
+      summary: Request a list of Pro7 Looks
+      description: |
+        Includes the currently active Look (activeLook)
+
+        **RELATED COMMAND**: [looksRequest (publish)](#message-looksRequest__pub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: looksRequest
+          looks:
+            type: array
+            items:
+            - $ref: '#/components/schemas/pro7Look'
+          activeLook:
+            type: object
+            properties:
+              lookName:
+                type: string
+              lookID:
+                type: string
+            required:
+            - lookName
+            - lookID
+            additionalProperties: false
+        required:
+        - action
+        - looks
+        - activeLook
+        additionalProperties: false
+      examples:
+      - payload:
+          action: looksRequest
+          looks:
+          - lookName: <Case-sensitive name of Look>
+            lookID: <Internal ID of Look>
+            lookIndex: <Zero-based index of Look>
+          activeLook:
+            lookName: <name>
+            lookID: <identifier>
     libraryRequest__pub:
       name: libraryRequest__pub
       title: libraryRequest (publish)
@@ -677,7 +1047,7 @@ components:
       description: |
         Will return all items in the ProPresenter library.
 
-        - Note that the response will include escaped slashes in path names.
+        - unlike Pro6, Pro7 sends the pathnames with slashes correctly encoded.
 
 
         **RELATED RESPONSE**: [libraryRequest (subscribe)](#message-libraryRequest__sub)
@@ -696,7 +1066,7 @@ components:
       description: |
         Will return all items in the ProPresenter library.
 
-        - Note that the response will include escaped slashes in path names.
+        - unlike Pro6, Pro7 sends the pathnames with slashes correctly encoded.
 
 
         **RELATED COMMAND**: [libraryRequest (publish)](#message-libraryRequest__pub)
@@ -708,9 +1078,6 @@ components:
           library:
             description: |
               This will be a list of full pathnames for all items in the Presentation library.
-
-              Note the use of slashes in the response. ProPresenter expects library
-              requests to follow this pattern exactly.
             type: array
             items:
             - $ref: '#/components/schemas/itemLocation'
@@ -805,8 +1172,9 @@ components:
       title: presentationRequest (publish)
       summary: Request a Playlist by Location
       description: |
-        NOTE: even though the requested action is `presentationRequest` Pro6 responds with
-        a `presentationCurrent` but it will be different. See below.
+        NOTE: even though the requested action is `presentationRequest` ProPresenter responds with
+        an action value of `presentationCurrent` but it will be slightly different from the response to
+        an actual `presentationCurrent` request. See below.
 
 
         **RELATED RESPONSE**: [presentationRequest (subscribe)](#message-presentationRequest__sub)
@@ -826,87 +1194,19 @@ components:
       examples:
       - payload:
           action: presentationRequest
-          presentationPath: \/Path\/To\/ProPresenter\/Library\/Song 1 Title.pro6
+          presentationPath: /Path/To/ProPresenter/Library/Song 1 Title.pro6
           presentationSlideQuality: 25
     presentationRequest__sub:
       name: presentationRequest__sub
       title: presentationRequest (subscribe)
       summary: Request a Playlist by Location
       description: |
-        NOTE: even though the requested action is `presentationRequest` Pro6 responds with
-        a `presentationCurrent` but it will be different. See below.
+        NOTE: even though the requested action is `presentationRequest` ProPresenter responds with
+        an action value of `presentationCurrent` but it will be slightly different from the response to
+        an actual `presentationCurrent` request. See below.
 
 
         **RELATED COMMAND**: [presentationRequest (publish)](#message-presentationRequest__pub)
-      payload:
-        type: object
-        properties:
-          action:
-            const: presentationCurrent
-          presentation:
-            $ref: '#/components/schemas/presentation'
-        required:
-        - action
-        - presentation
-        additionalProperties: false
-      examples:
-      - payload:
-          action: presentationCurrent
-          presentation:
-            presentationSlideGroups:
-            - groupName: '[SLIDE GROUP NAME]'
-              groupColor: 0 0 0 1
-              groupSlides:
-              - slideEnabled: true
-                slideNotes: ''
-                slideAttachmentMask: 0
-                slideText: '[SLIDE TEXT HERE]'
-                slideImage: '[BASE64 ENCODED IMAGE]'
-                slideIndex: '0'
-                slideTransitionType: -1
-                slideLabel: '[SLIDE LABEL]'
-                slideColor: 0 0 0 1
-            presentationName: '[PRESENTATION TITLE]'
-            presentationHasTimeline: 0
-            presentationCurrentLocation: '[PRESENTATION PATH OF CURRENTLY ACTIVE SLIDE]'
-    presentationCurrent__pub:
-      name: presentationCurrent__pub
-      title: presentationCurrent (publish)
-      summary: Request Current Presentation
-      description: |
-        Requests the currently active presentation if there is one. If no presentation has a slide
-        active, then nothing will be returned.
-
-        NOTE: You can distinguish this response from a presentationRequest request
-        because this response will include presentationPath as a field at the root level
-        of the response.
-
-
-        **RELATED RESPONSE**: [presentationCurrent (subscribe)](#message-presentationCurrent__sub)
-      payload:
-        type: object
-        properties:
-          action:
-            const: presentationCurrent
-          presentationSlideQuality:
-            type: integer
-        required:
-        - action
-        additionalProperties: false
-    presentationCurrent__sub:
-      name: presentationCurrent__sub
-      title: presentationCurrent (subscribe)
-      summary: Request Current Presentation
-      description: |
-        Requests the currently active presentation if there is one. If no presentation has a slide
-        active, then nothing will be returned.
-
-        NOTE: You can distinguish this response from a presentationRequest request
-        because this response will include presentationPath as a field at the root level
-        of the response.
-
-
-        **RELATED COMMAND**: [presentationCurrent (publish)](#message-presentationCurrent__pub)
       payload:
         type: object
         properties:
@@ -920,6 +1220,107 @@ components:
         - action
         - presentationPath
         - presentation
+        additionalProperties: false
+      examples:
+      - payload:
+          presentationPath: /Volumes/Jeff/Documents/ProPresenter/Libraries/Default 1/2020-08-16 We Are Chosen-Chosen for This.pro
+          action: presentationCurrent
+          presentation:
+            presentationSlideGroups:
+            - groupName: Group
+              groupColor: ''
+              groupSlides:
+              - slideEnabled: true
+                slideNotes: ''
+                slideText: ''
+                slideImage: ''
+                slideIndex: '0'
+                slideLabel: 162. Chosen Bumper
+                slideColor: 0 0 0 0
+              - slideEnabled: true
+                slideNotes: '[sermon_end]
+
+                  vmixoverlay[2,Out]
+
+                  vmixoverlay[1,In,10]
+
+                  live[999]'
+                slideText: ''
+                slideImage: ''
+                slideIndex: '0'
+                slideLabel: ''
+                slideColor: 0 0 0 0
+            presentationName: 2020-08-16 We Are Chosen-Chosen for This
+            presentationHasTimeline: 0
+            presentationCurrentLocation: /Volumes/Jeff/Documents/ProPresenter/Libraries/Default 1/2020-08-16 We Are Chosen-Chosen
+              for This.pro
+            presentationDestination: 0
+    presentationCurrent__pub:
+      name: presentationCurrent__pub
+      title: presentationCurrent (publish)
+      summary: Request Current Presentation
+      description: |
+        Requests the currently active presentation if there is one. If no presentation has a slide
+        active, then nothing will be returned.
+
+        NOTE: You can distinguish this response from a `presentationRequest` request
+        because this response will include `presentationDestination` as a field at the root level
+        of the response.
+
+        NOTE: In Pro6, the extra field was `presentationPath` at the root level. Now, both
+        requests return a `presentationPath`. I still consider this a bug.
+
+        NOTE: Pro7 ignores the `presentationSlideQuality` field unless it is a `string`. This is a bug.
+
+
+        **RELATED RESPONSE**: [presentationCurrent (subscribe)](#message-presentationCurrent__sub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: presentationCurrent
+          presentationSlideQuality:
+            type: string
+        required:
+        - action
+        additionalProperties: false
+    presentationCurrent__sub:
+      name: presentationCurrent__sub
+      title: presentationCurrent (subscribe)
+      summary: Request Current Presentation
+      description: |
+        Requests the currently active presentation if there is one. If no presentation has a slide
+        active, then nothing will be returned.
+
+        NOTE: You can distinguish this response from a `presentationRequest` request
+        because this response will include `presentationDestination` as a field at the root level
+        of the response.
+
+        NOTE: In Pro6, the extra field was `presentationPath` at the root level. Now, both
+        requests return a `presentationPath`. I still consider this a bug.
+
+        NOTE: Pro7 ignores the `presentationSlideQuality` field unless it is a `string`. This is a bug.
+
+
+        **RELATED COMMAND**: [presentationCurrent (publish)](#message-presentationCurrent__pub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: presentationCurrent
+          presentationPath:
+            $ref: '#/components/schemas/itemLocation'
+          presentation:
+            $ref: '#/components/schemas/presentation'
+          presentationDestination:
+            description: |-
+              Which output is this presentation assigned to?
+            type: integer
+        required:
+        - action
+        - presentationPath
+        - presentation
+        - presentationDestination
         additionalProperties: false
     presentationSlideIndex__pub:
       name: presentationSlideIndex__pub
@@ -969,7 +1370,11 @@ components:
       title: presentationTriggerIndex (publish)
       summary: Activate a Slide
       description: |
-        Works just like clicking on a slide
+        Works just like clicking on a slide.
+
+        NOTE: This is different from Pro6. Only string numerics are accepted for slideIndex
+        even though the `presentationTriggerMessage` responds with an integer. This is a bug.
+
 
         **RELATED RESPONSE**: [presentationTriggerIndex (subscribe)](#message-presentationTriggerIndex__sub)
       payload:
@@ -978,7 +1383,7 @@ components:
           action:
             const: presentationTriggerIndex
           slideIndex:
-            type: integer
+            type: string
           presentationPath:
             $ref: '#/components/schemas/itemLocation'
             examples:
@@ -994,7 +1399,11 @@ components:
       title: presentationTriggerIndex (subscribe)
       summary: Activate a Slide
       description: |
-        Works just like clicking on a slide
+        Works just like clicking on a slide.
+
+        NOTE: This is different from Pro6. Only string numerics are accepted for slideIndex
+        even though the `presentationTriggerMessage` responds with an integer. This is a bug.
+
 
         **RELATED COMMAND**: [presentationTriggerIndex (publish)](#message-presentationTriggerIndex__pub)
       payload:
@@ -1136,7 +1545,7 @@ components:
       title: audioIsPlaying (publish)
       summary: Is Audio Playing (BROKEN)
       description: |
-        This api request exists, but it always reports `false`
+        This api request exists, but in Pro7 always reports `true`
 
         **RELATED RESPONSE**: [audioIsPlaying (subscribe)](#message-audioIsPlaying__sub)
       payload:
@@ -1152,7 +1561,7 @@ components:
       title: audioIsPlaying (subscribe)
       summary: Is Audio Playing (BROKEN)
       description: |
-        This api request exists, but it always reports `false`
+        This api request exists, but in Pro7 always reports `true`
 
         **RELATED COMMAND**: [audioIsPlaying (publish)](#message-audioIsPlaying__pub)
       payload:
@@ -1161,7 +1570,7 @@ components:
           action:
             const: audioIsPlaying
           audioIsPlaying:
-            const: false
+            const: true
         required:
         - action
         - audioIsPlaying
@@ -1220,7 +1629,8 @@ components:
       name: audioPlayPause__pub
       title: audioPlayPause (publish)
       summary: Toggle the Audio Play State
-      description: |2
+      description: |
+        NOTE: this is different from Pro6. Pro6 used `Play` but Pro7 uses `Playing`
 
 
         **RELATED RESPONSE**: [audioPlayPause (subscribe)](#message-audioPlayPause__sub)
@@ -1236,7 +1646,8 @@ components:
       name: audioPlayPause__sub
       title: audioPlayPause (subscribe)
       summary: Toggle the Audio Play State
-      description: |2
+      description: |
+        NOTE: this is different from Pro6. Pro6 used `Play` but Pro7 uses `Playing`
 
 
         **RELATED COMMAND**: [audioPlayPause (publish)](#message-audioPlayPause__pub)
@@ -1248,7 +1659,7 @@ components:
           audioPlayPause:
             type: string
             enum:
-            - Play
+            - Playing
             - Pause
         required:
         - action
@@ -1259,7 +1670,7 @@ components:
       title: timelinePlayPause (publish)
       summary: Toggle the Timeline Play State
       description: |-
-        If `presentationPath` is missing, Pro6 will crash.
+        If `presentationPath` is missing, Pro6 would crash, but Pro7 doesn't.
 
         NO RESPONSE
       payload:
@@ -1333,8 +1744,8 @@ components:
       name: clockCurrentTimes__pub
       title: clockCurrentTimes (publish)
       summary: Get Current Times for All Clocks
-      description: |2
-
+      description: |
+        REMOVED FROM PRO7 !!
 
         **RELATED RESPONSE**: [clockCurrentTimes (subscribe)](#message-clockCurrentTimes__sub)
       payload:
@@ -1349,8 +1760,8 @@ components:
       name: clockCurrentTimes__sub
       title: clockCurrentTimes (subscribe)
       summary: Get Current Times for All Clocks
-      description: |2
-
+      description: |
+        REMOVED FROM PRO7 !!
 
         **RELATED COMMAND**: [clockCurrentTimes (publish)](#message-clockCurrentTimes__pub)
       payload:
@@ -1538,7 +1949,7 @@ components:
             type: integer
             examples:
             - 1
-          clocksummary:
+          clockName:
             type: string
             examples:
             - |-
@@ -1555,7 +1966,7 @@ components:
         - clockTime
         - clockOverrun
         - clockIsPM
-        - clocksummary
+        - clockName
         - clockElapsedTime
         additionalProperties: false
       examples:
@@ -1837,7 +2248,8 @@ components:
       name: stageDisplaySets__pub
       title: stageDisplaySets (publish)
       summary: Get Stage Display Layouts
-      description: |2
+      description: |
+        NOTE: this is much different from Pro6 also.
 
 
         **RELATED RESPONSE**: [stageDisplaySets (subscribe)](#message-stageDisplaySets__sub)
@@ -1856,7 +2268,8 @@ components:
       name: stageDisplaySets__sub
       title: stageDisplaySets (subscribe)
       summary: Get Stage Display Layouts
-      description: |2
+      description: |
+        NOTE: this is much different from Pro6 also.
 
 
         **RELATED COMMAND**: [stageDisplaySets (publish)](#message-stageDisplaySets__pub)
@@ -1865,30 +2278,36 @@ components:
         properties:
           action:
             const: stageDisplaySets
+          stageScreens:
+            type: array
+            items:
+            - $ref: '#/components/schemas/stageScreenItem'
           stageDisplayIndex:
             type: integer
             examples:
             - 4
-          stageDisplaySets:
+          stageLayouts:
             type: array
             items:
-            - type: string
+            - $ref: '#/components/schemas/stageLayoutInfo'
         required:
         - action
+        - stageScreens
         - stageDisplayIndex
-        - stageDisplaySets
+        - stageLayouts
         additionalProperties: false
       examples:
       - payload:
-          stageDisplayIndex: 4
           action: stageDisplaySets
-          stageDisplaySets:
-          - Default
-          - Easter Closer
-          - Live Current - Static Next - no borders
-          - Static Current - Static Next
-          - Songs
-          - Slides
+          stageScreens:
+          - stageLayoutSelectedLayoutUUID: 12CB7383-FA02-47BB-B501-747ADCA860D3
+            stageScreenName: Stage Screen 1
+            stageScreenUUID: 22B3B653-97AB-4371-9958-E42915C8F24A
+          stageLayouts:
+          - stageLayoutName: Default
+            stageLayoutUUID: 753B184F-CCCD-42F9-A883-D1DF86E1FFB8
+          - stageLayoutName: Slides
+            stageLayoutUUID: 89A2AC43-B47F-44C5-8E21-CE0E424A70C1
     clearAll__pub:
       name: clearAll__pub
       title: clearAll (publish)
@@ -2390,6 +2809,10 @@ channels:
       message:
         oneOf:
         - $ref: '#/components/messages/authenticate__pub'
+        - $ref: '#/components/messages/macrosTrigger__pub'
+        - $ref: '#/components/messages/macrosRequest__pub'
+        - $ref: '#/components/messages/looksTrigger__pub'
+        - $ref: '#/components/messages/looksRequest__pub'
         - $ref: '#/components/messages/libraryRequest__pub'
         - $ref: '#/components/messages/playlistRequestAll__pub'
         - $ref: '#/components/messages/presentationRequest__pub'
@@ -2435,6 +2858,8 @@ channels:
       message:
         oneOf:
         - $ref: '#/components/messages/authenticate__sub'
+        - $ref: '#/components/messages/macrosRequest__sub'
+        - $ref: '#/components/messages/looksRequest__sub'
         - $ref: '#/components/messages/libraryRequest__sub'
         - $ref: '#/components/messages/playlistRequestAll__sub'
         - $ref: '#/components/messages/presentationRequest__sub'
