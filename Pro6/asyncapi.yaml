@@ -1,0 +1,2474 @@
+asyncapi: 2.1.0
+info:
+  title: ProPresenter API
+  version: '6'
+  description: 'Documenting RenewedVision''s undocumented network protocols with examples
+
+
+    This document refers to **ProPresenter 6.**
+
+
+    Both the Remote Control and the Stage Display protocols are unencrypted text-based websocket connections from the client
+    to the ProPresenter instance.
+
+
+    NOTE: if both the Remote Control and the Stage Display interface are enabled in ProPresenter, they both operate over the
+    Remote Control network port.
+
+
+    "Channels" refers to the communication channels opened up by ProPresenter.
+
+    Both versions 6 and 7 expose two channels. One is the "remote" channel, and the
+
+    other is the "stagedisplay" channel. They have two separate websocket endpoints
+
+    that take the following form:
+
+
+    ```
+
+    ws://[hostname]:[port]/[channel]
+
+    ```
+
+    '
+defaultContentType: application/json
+servers:
+  pro6:
+    protocol: ws
+    url: ws://{host}:{port}/{channel_name}
+    description: 'Connecting to ProPresenter involves making a Websocket connection using
+
+      this address and then immediately following the connection with an
+
+      authentication message (as described below) for the relevant "channel."
+
+      '
+    variables:
+      host:
+        description: The hostname or ip address of the computer running ProPresenter 6
+      port:
+        description: The port specified in the ProPresenter Network settings
+      channel_name:
+        enum:
+        - remote
+        - stagedisplay
+        description: '*remote* for the remote control channel,
+
+          or *stagedisplay* for the stage display channel
+
+          '
+components:
+  schemas:
+    boolint:
+      description: |-
+        0 for false, 1 for true, (in Pro6, these sometimes show up as strings)
+      type: integer
+    color:
+      description: |
+        four space-delimited numbers describing the r,g,b,a values of a color
+        r,g,b values are 0-255
+        a value is 0-1
+      type: string
+      examples:
+      - 125 125 125 1
+    itemLocation:
+      description: |
+        A slash-escaped full pathname, file basename, or playlist location.
+
+        Pathname locations need to escape the slashes BEFORE they are encoded
+        to JSON.
+
+        ```
+        \/Path\/To\/ProPresenter\/Library\/Song 1 Title.pro6
+        ```
+
+        Playlist locations are specified by a zero-based index of the playlist
+        and playlist group in which the item may be found.
+
+        The first item in the first playlist would be `"0:0"`.
+
+        If the first playlist item is a playlist group, then the first item
+        in the first playlist in the first playlist group would be `"0.0:0"`.
+
+        That is, the generalized location is this:
+
+        `playlist_index[.child_playlist_index[.deeper_child_index[...]]]:item`
+
+        NOTE: Pro6 supports full pathnames or basenames.
+      type: string
+      examples:
+      - |-
+        \/Path\/To\/ProPresenter\/Library\/Song 1 Title.pro6
+    presentationSlide:
+      type: object
+      properties:
+        slideEnabled:
+          type: boolean
+        slideNotes:
+          type: string
+        slideAttachmentMask:
+          description: |-
+            unknown
+          type: integer
+        slideText:
+          type: string
+        slideImage:
+          description: |-
+            base64 encoded jpeg image
+          type: string
+        slideIndex:
+          description: |
+            it is the zero-based index of the slide in a presentation
+
+            NOTE: it is sometimes transmitted as a JSON string and sometimes a JSON number
+          type: integer
+        slideTransitionType:
+          description: |
+            `-1` for default transition or another number for a different transition
+          type: integer
+        slideLabel:
+          type: string
+        slideColor:
+          $ref: '#/components/schemas/color'
+      required:
+      - slideEnabled
+      - slideNotes
+      - slideAttachmentMask
+      - slideText
+      - slideImage
+      - slideIndex
+      - slideTransitionType
+      - slideLabel
+      - slideColor
+      additionalProperties: false
+    presentationSlideGroup:
+      type: object
+      properties:
+        groupsummary:
+          type: string
+        groupColor:
+          $ref: '#/components/schemas/color'
+        groupSlides:
+          type: array
+          items:
+          - $ref: '#/components/schemas/presentationSlide'
+      required:
+      - groupsummary
+      - groupColor
+      - groupSlides
+      additionalProperties: false
+    presentation:
+      type: object
+      properties:
+        presentationSlideGroups:
+          type: array
+          items:
+          - $ref: '#/components/schemas/presentationSlideGroup'
+        presentationsummary:
+          type: string
+        presentationHasTimeline:
+          $ref: '#/components/schemas/boolint'
+        presentationCurrentLocation:
+          description: |
+            This field contains the location of the *currently active* presentation if there is one.
+
+            It only refers to the location of *this* presentation if we asked for `presentationCurrent`
+          $ref: '#/components/schemas/itemLocation'
+      required:
+      - presentationSlideGroups
+      - presentationsummary
+      - presentationHasTimeline
+      - presentationCurrentLocation
+      additionalProperties: false
+    presentationTriggerMessage:
+      type: object
+      properties:
+        action:
+          const: presentationTriggerIndex
+        slideIndex:
+          type: integer
+        presentationPath:
+          description: |
+            If the current presentation was selected from a playlist, it will report the
+            playlist location (i.e. `0:0`), but if it was selected from the Library directly,
+            the path value will always be the *basename* only.
+          $ref: '#/components/schemas/itemLocation'
+      required:
+      - action
+      - slideIndex
+      - presentationPath
+      additionalProperties: false
+    playlistItemType:
+      type: object
+      properties:
+        playlistItemType:
+          type: string
+          enum:
+          - playlistItemTypeAudio
+          - playlistItemTypePresentation
+        playlistItemLocation:
+          $ref: '#/components/schemas/itemLocation'
+        playlistItemsummary:
+          type: string
+        playlistItemArtist:
+          description: |-
+            only present for playlistItemTypeAudio
+          type: string
+      required:
+      - playlistItemType
+      - playlistItemLocation
+      - playlistItemsummary
+      - playlistItemArtist
+      additionalProperties: false
+    playlistTypePlaylist:
+      type: object
+      properties:
+        playlistLocation:
+          $ref: '#/components/schemas/itemLocation'
+        playlistType:
+          const: playlistTypePlaylist
+        playlistsummary:
+          type: string
+        playlist:
+          type: array
+          items:
+          - $ref: '#/components/schemas/playlistItemType'
+      required:
+      - playlistLocation
+      - playlistType
+      - playlistsummary
+      - playlist
+      additionalProperties: false
+    playlistTypeGroup:
+      type: object
+      properties:
+        playlistType:
+          const: playlistTypeGroup
+        playlistsummary:
+          type: string
+        playlistLocation:
+          $ref: '#/components/schemas/itemLocation'
+        playlist:
+          type: array
+          items:
+          - $ref: '#/components/schemas/playlistUnionType'
+      required:
+      - playlistType
+      - playlistsummary
+      - playlistLocation
+      - playlist
+      additionalProperties: false
+    playlistUnionType:
+      oneOf:
+      - $ref: '#/components/schemas/playlistTypeGroup'
+      - $ref: '#/components/schemas/playlistTypePlaylist'
+    audioPlayPause:
+      description: |-
+        in ProPresenter 7, the "Play" option becomes "Playing"
+      type: string
+      enum:
+      - Play
+      - Pause
+    clockTimeString:
+      description: |
+        - real times are formatted as `"H:MM:SS"` (no padding on the leading H)
+        - negative times are possible with a leading `-`.
+        - empty times are `"--:--:--"`
+      type: string
+    clockType:
+      description: |
+        `0` is Countdown, `1` is Countdown to Time, `2` is Elapsed Time
+      type: integer
+      enum:
+      - 0
+      - 1
+      - 2
+    clockDetail:
+      type: object
+      properties:
+        clockType:
+          $ref: '#/components/schemas/clockType'
+        clockState:
+          description: |-
+            running is `true`, not running is `false`
+          type: boolean
+        clocksummary:
+          type: string
+        clockIsPM:
+          $ref: '#/components/schemas/boolint'
+        clockTime:
+          $ref: '#/components/schemas/clockTimeString'
+        clockEndTime:
+          $ref: '#/components/schemas/clockTimeString'
+        clockDuration:
+          $ref: '#/components/schemas/clockTimeString'
+        clockOverrun:
+          description: |-
+            indicates if clock should keep running after it hits the endtime.
+          type: boolean
+      required:
+      - clockType
+      - clockState
+      - clocksummary
+      - clockIsPM
+      - clockTime
+      - clockEndTime
+      - clockDuration
+      - clockOverrun
+      additionalProperties: false
+    clockQuickInfo:
+      type: array
+    clockStartStopMessage:
+      type: object
+      properties:
+        action:
+          const: clockStartStop
+        clockTime:
+          $ref: '#/components/schemas/clockTimeString'
+        clockState:
+          description: |-
+            same as clockState in clockDetail, but given as a boolint
+          $ref: '#/components/schemas/boolint'
+        clockIndex:
+          description: |-
+            zero-based clock index, clock lists are in a stable order
+          type: integer
+        clockInfo:
+          $ref: '#/components/schemas/clockQuickInfo'
+      required:
+      - action
+      - clockTime
+      - clockState
+      - clockIndex
+      - clockInfo
+      additionalProperties: false
+    clockCurrentTimesMessage:
+      type: object
+      properties:
+        action:
+          const: clockCurrentTimes
+        clockTimes:
+          type: array
+          items:
+          - $ref: '#/components/schemas/clockTimeString'
+      required:
+      - action
+      - clockTimes
+      additionalProperties: false
+      examples:
+      - action: clockCurrentTimes
+        clockTimes:
+        - 0:10:00
+        - --:--:--
+        - '13:52:23'
+    screenMessage:
+      type: object
+      properties:
+        messageComponents:
+          description: |
+            Each string is either a literal string or a variable expansion, which will be
+            concatenated together to make the final on screen message.
+
+            The content inside a `${}` is referred to as a `messageKey` in later commands
+          type: array
+          items:
+          - type: string
+        messageTitle:
+          type: string
+      required:
+      - messageComponents
+      - messageTitle
+      additionalProperties: false
+      examples:
+      - messageComponents:
+        - 'Session will begin in: '
+        - '${Countdown 1: H:MM:SS}'
+        - .
+        messageTitle: Countdown
+    stageDisplayFrameGeometry:
+      description: "Frame Geometry is delivered in x,y coordinates based on screen percentages in the \nfollowing format:\n\
+        \n`{{upper_left_x_pct, upper_left_y_pct}, {lower_right_x_pct, lower_right_y_pct}}`\n"
+      type: string
+      examples:
+      - |-
+        {{0.025000000000000001, 0.37418655097613884}, {0.40000000000000002, 0.50108459869848154}}
+    stageDisplayColor:
+      description: |
+        Stage Display colors are strings of three or four space-delimited float values for RGB(A) from 0-1
+      type: string
+      examples:
+      - |-
+        1.000000 1.000000 1.000000 1.000000
+    stageDisplayFrame:
+      description: |-
+        A Stage Display Frame is a box of stage display information.
+      type: object
+      properties:
+        ufr:
+          $ref: '#/components/schemas/stageDisplayFrameGeometry'
+        mde:
+          description: |
+            * frame mode is indicated by `mde`
+              * mode 0: static image
+              * mode 1: text
+              * mode 2: live slide
+          type: integer
+          enum:
+          - 0
+          - 1
+          - 2
+        tAl:
+          description: |-
+            Always seems to be `2`
+          type: integer
+        tCl:
+          description: |-
+            frame text color
+          $ref: '#/components/schemas/stageDisplayColor'
+        tSz:
+          description: |-
+            Frame font size
+          type: integer
+        nme:
+          description: |-
+            Name of this frame
+          type: string
+        typ:
+          description: |
+            * frame type is indicated by `typ` and determines what content goes in this frame
+              * type 1: current slide
+              * type 2: next slide
+              * type 3: current slide notes
+              * type 4: next slide notes
+              * type 5: Stage Message (uses message flash values)
+              * type 6: Clock
+              * type 7: Timer Display (uses `uid` to specify timer)
+              * type 8: Video Countdown
+              * type 9: Chord Chart
+          type: integer
+          enum:
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+        fCl:
+          description: |-
+            (message frames only) frame message flash color
+          $ref: '#/components/schemas/stageDisplayColor'
+        fCh:
+          description: |-
+            (message frames only) frame use message flash
+          type: boolean
+        uid:
+          description: |-
+            (timer frames only) frame timer uid
+          type: string
+      required:
+      - ufr
+      - mde
+      - tAl
+      - tCl
+      - tSz
+      - nme
+      - typ
+      - fCl
+      - fCh
+      - uid
+      additionalProperties: false
+    stageDisplayLayout:
+      description: |
+        * `nme` indicates layout name
+        * `ovr` indicates if overrun color should be used
+        * `oCl` indicates color for timer overruns
+        * `brd` indicates if borders and labels should be used
+        * `uid` indicates layout uid
+        * `zro` indicates if zeroes should be removed from times
+        * `fme` indicates array of frame layout specifications
+      type: object
+      properties:
+        nme:
+          description: |-
+            indicates layout name
+          type: string
+        brd:
+          description: |-
+            indicates if borders and labels should be used
+          type: boolean
+        uid:
+          description: |-
+            indicates layout uid
+          type: string
+        zro:
+          description: |-
+            indicates if leading zeroes should be removed from times
+          $ref: '#/components/schemas/boolint'
+        ovr:
+          description: |-
+            indicates if overrun color should be used
+          type: boolean
+        oCl:
+          description: |-
+            indicates color for timer overruns
+          $ref: '#/components/schemas/stageDisplayColor'
+        fme:
+          type: array
+          items:
+          - $ref: '#/components/schemas/stageDisplayFrame'
+        acn:
+          const: sl
+      required:
+      - nme
+      - brd
+      - uid
+      - zro
+      - ovr
+      - oCl
+      - fme
+      - acn
+      additionalProperties: false
+    stageDisplayFrameValue:
+      type: object
+      properties:
+        uid:
+          description: |-
+            (only for slides and timers) uid of the object in this frame
+          type: string
+        txt:
+          description: |-
+            the text content of this frame, if any
+          type: string
+        acn:
+          description: |
+            * `cs` = current slide text
+            * `csn` = current slide notes
+            * `ns` = next slide text
+            * `nsn` = next slide text
+            * `msg` = stage display message text
+            * `sys` = system clock time
+            * `vid` = video countdown value
+            * `tmr` = timer value
+            * `cc` = chord chart
+          type: string
+          enum:
+          - cs
+          - csn
+          - ns
+          - nsn
+          - msg
+          - sys
+          - vid
+          - tmr
+          - cc
+      required: []
+      additionalProperties: false
+      examples:
+      - acn: cs
+        uid: FAFCA1CB-8CB8-4E53-8B7C-8D61154516D0
+        txt: ''
+    stageDisplayLiveSlideFrame:
+      type: object
+      properties:
+        RVLiveStream_action:
+          const: RVLiveStream_frameData
+        RVLiveStream_frameDataLength:
+          description: |-
+            byte count of this frame data
+          type: integer
+        RVLiveStream_frameData:
+          description: |-
+            base64 encoded jpeg image
+          type: string
+      required:
+      - RVLiveStream_action
+      - RVLiveStream_frameDataLength
+      - RVLiveStream_frameData
+      additionalProperties: false
+      examples:
+      - RVLiveStream_action: RVLiveStream_frameData
+        RVLiveStream_frameDataLength: 14625
+        RVLiveStream_frameData: /9j//gAQTGF2YzU3LjUzLjEwMAD/2wBDAAgEBAQEBAUFBQUFBQYGBgYGBgYGBgYGBgYHBwcICAgHBwcGBgcHCAgICAkJCQgICAgJCQoKCgwMCwsODg4RERT/xAGiAAABBQEBAQEBAQAAAAAAAAAAAQIDBAUGBwgJCgsBAAMBAQEBAQEBAQEAAAAAAAABAgMEBQYHCAkKCxAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6EQACAQIEBAMEBwUEBAABAncAAQIDEQQFITEGEkFRB2FxEyIygQgUQpGhscEJIzNS8BVictEKFiQ04SXxFxgZGiYnKCkqNTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqCg4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2dri4+Tl5ufo6ery8/T19vf4+fr/wAARCAEOAeADASIAAhIAAxIA/9oADAMBAAIRAxEAPwDwqiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKKAAAooooAACiiigAAKKKOtAAAUUux/7p/I0bH/ALp/I0AACUUux/7p/I0bH/un8jQAAJRS7H/un8jRsf8Aun8jQAAJRS7H/un8jRsf+6fyNAAAlFLsf+6fyNGx/wC6fyNAAAlFLsf+6fyNGx/7p/I0AACUUux/7p/I0bH/ALp/I0AACUUux/7p/I0bH/un8jQAAJRS7H/un8jRsf8Aun8jQAAJRS7H/un8jRsf+6fyNAAAlFLsf+6fyNGx/wC6fyNAAAlFLsf+6fyNGx/7p/I0AACUUux/7p/I0bH/ALp/I0AACUUux/7p/I0bH/un8jQAAJRS7H/un8jRsf8Aun8jQAAJRS7H/un8jRsf+6fyNAAAlFLsf+6fyNGx/wC6fyNAAAlFLsf+6fyNGx/7p/I0AACUUux/7p/I0bH/ALp/I0AACUUux/7p/I0bH/un8jQAAJRS7H/un8jRsf8Aun8jQAAJRS7H/un8jRsf+6fyNAAAlFLsf+6fyNGx/wC6fyNAAAlFLsf+6fyNGx/7p/I0AACUUux/7p/I0bH/ALp/I0AACUUux/7p/I0bH/un8jQAAJRRRQAAFFFFAAAUUUUAABXafs9wQXPxg8LRTxRzRtcT7o5EV0b/AEWY8qwIPPqK4uu2/Z0/5LL4U/6+bj/0kmoAAPrL/hH9B/6BOm/+Adv/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
+  messages:
+    authenticate__pub:
+      name: authenticate__pub
+      title: authenticate (publish)
+      summary: RemoteAuthentication
+      description: |
+        This is the first command ProPresenter expects to receive over the websocket.
+        This command requests authentication.
+
+        For ProPresenter 6, the protocol must be `600`
+
+
+        **RELATED RESPONSE**: [authenticate (subscribe)](#message-authenticate__sub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: authenticate
+          protocol:
+            const: 600
+          password:
+            description: |-
+              as defined in the ProPresenter network settings
+            type: string
+        required:
+        - action
+        - protocol
+        - password
+        additionalProperties: false
+    authenticate__sub:
+      name: authenticate__sub
+      title: authenticate (subscribe)
+      summary: RemoteAuthentication
+      description: |
+        This is the first command ProPresenter expects to receive over the websocket.
+        This command requests authentication.
+
+        For ProPresenter 6, the protocol must be `600`
+
+
+        **RELATED COMMAND**: [authenticate (publish)](#message-authenticate__pub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: authenticate
+          error:
+            description: |-
+              empty if there is no error, otherwise error message
+            type: string
+          authenticated:
+            description: |-
+              1 for true, 0 for false
+            $ref: '#/components/schemas/boolint'
+          controller:
+            description: |-
+              Does user have permission to send control messages? 1 for true, 0 for false
+            $ref: '#/components/schemas/boolint'
+        required:
+        - action
+        - error
+        - authenticated
+        - controller
+        additionalProperties: false
+      examples:
+      - payload:
+          controller: 1
+          authenticated: 1
+          error: ''
+          action: authenticate
+    libraryRequest__pub:
+      name: libraryRequest__pub
+      title: libraryRequest (publish)
+      summary: Get Library (all presentations)
+      description: |
+        Will return all items in the ProPresenter library.
+
+        - Note that the response will include escaped slashes in path names.
+
+
+        **RELATED RESPONSE**: [libraryRequest (subscribe)](#message-libraryRequest__sub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: libraryRequest
+        required:
+        - action
+        additionalProperties: false
+    libraryRequest__sub:
+      name: libraryRequest__sub
+      title: libraryRequest (subscribe)
+      summary: Get Library (all presentations)
+      description: |
+        Will return all items in the ProPresenter library.
+
+        - Note that the response will include escaped slashes in path names.
+
+
+        **RELATED COMMAND**: [libraryRequest (publish)](#message-libraryRequest__pub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: libraryRequest
+          library:
+            description: |
+              This will be a list of full pathnames for all items in the Presentation library.
+
+              Note the use of slashes in the response. ProPresenter expects library
+              requests to follow this pattern exactly.
+            type: array
+            items:
+            - $ref: '#/components/schemas/itemLocation'
+        required:
+        - action
+        - library
+        additionalProperties: false
+      examples:
+      - payload:
+          library:
+          - /Path/To/ProPresenter/Library/Come Alive (Dry Bones).pro6
+          - /Path/To/ProPresenter/Library/Pour Out My Heart.pro6
+          - /Path/To/ProPresenter/Library/Away in a manger.pro6
+          - '... ALL PRESENTATIONS IN THE LIBRARY ...'
+          action: libraryRequest
+    playlistRequestAll__pub:
+      name: playlistRequestAll__pub
+      title: playlistRequestAll (publish)
+      summary: Get Playlists
+      description: |
+        Will return all presentation playlists.
+
+        - Presentation playlists and Audio playlists have a similar format
+        - A playlist may be a `playlistTypePlaylist` or a `playlistTypeGroup`
+        - `playlistTypePlaylist` will contain a list of `playlistItemTypePresentation` (or `playlistItemTypeAudio` for audio playlists)
+        - `playlistTypeGroup` may contain both `playlistTypePlaylist` and `playlistTypeGroup`
+
+
+        **RELATED RESPONSE**: [playlistRequestAll (subscribe)](#message-playlistRequestAll__sub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: playlistRequestAll
+        required:
+        - action
+        additionalProperties: false
+    playlistRequestAll__sub:
+      name: playlistRequestAll__sub
+      title: playlistRequestAll (subscribe)
+      summary: Get Playlists
+      description: |
+        Will return all presentation playlists.
+
+        - Presentation playlists and Audio playlists have a similar format
+        - A playlist may be a `playlistTypePlaylist` or a `playlistTypeGroup`
+        - `playlistTypePlaylist` will contain a list of `playlistItemTypePresentation` (or `playlistItemTypeAudio` for audio playlists)
+        - `playlistTypeGroup` may contain both `playlistTypePlaylist` and `playlistTypeGroup`
+
+
+        **RELATED COMMAND**: [playlistRequestAll (publish)](#message-playlistRequestAll__pub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: playlistRequestAll
+          playlistAll:
+            type: array
+            items:
+            - $ref: '#/components/schemas/playlistUnionType'
+        required:
+        - action
+        - playlistAll
+        additionalProperties: false
+      examples:
+      - payload:
+          playlistAll:
+          - playlistLocation: '0'
+            playlistType: playlistTypePlaylist
+            playlistName: Default
+            playlist:
+            - playlistItemName: '!~ PRE-SERVICE'
+              playlistItemLocation: 0:0
+              playlistItemType: playlistItemTypePresentation
+          - playlistLocation: '1'
+            playlistType: playlistTypeGroup
+            playlistName: '2017'
+            playlist:
+            - playlistLocation: '1.0'
+              playlistType: playlistTypePlaylist
+              playlistName: 2017-01-28-Vision Dinner
+              playlist:
+              - playlistItemName: '!MISC2'
+                playlistItemLocation: 1.0:0
+                playlistItemType: playlistItemTypePresentation
+              - playlistItemName: '!MISC1'
+                playlistItemLocation: 1.0:1
+                playlistItemType: playlistItemTypePresentation
+          action: playlistRequestAll
+    presentationRequest__pub:
+      name: presentationRequest__pub
+      title: presentationRequest (publish)
+      summary: Request a Playlist by Location
+      description: |
+        NOTE: even though the requested action is `presentationRequest` Pro6 responds with
+        a `presentationCurrent` but it will be different. See below.
+
+
+        **RELATED RESPONSE**: [presentationRequest (subscribe)](#message-presentationRequest__sub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: presentationRequest
+          presentationPath:
+            $ref: '#/components/schemas/itemLocation'
+          presentationSlideQuality:
+            type: integer
+        required:
+        - action
+        - presentationPath
+        additionalProperties: false
+      examples:
+      - payload:
+          action: presentationRequest
+          presentationPath: \/Path\/To\/ProPresenter\/Library\/Song 1 Title.pro6
+          presentationSlideQuality: 25
+    presentationRequest__sub:
+      name: presentationRequest__sub
+      title: presentationRequest (subscribe)
+      summary: Request a Playlist by Location
+      description: |
+        NOTE: even though the requested action is `presentationRequest` Pro6 responds with
+        a `presentationCurrent` but it will be different. See below.
+
+
+        **RELATED COMMAND**: [presentationRequest (publish)](#message-presentationRequest__pub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: presentationCurrent
+          presentation:
+            $ref: '#/components/schemas/presentation'
+        required:
+        - action
+        - presentation
+        additionalProperties: false
+      examples:
+      - payload:
+          action: presentationCurrent
+          presentation:
+            presentationSlideGroups:
+            - groupName: '[SLIDE GROUP NAME]'
+              groupColor: 0 0 0 1
+              groupSlides:
+              - slideEnabled: true
+                slideNotes: ''
+                slideAttachmentMask: 0
+                slideText: '[SLIDE TEXT HERE]'
+                slideImage: '[BASE64 ENCODED IMAGE]'
+                slideIndex: '0'
+                slideTransitionType: -1
+                slideLabel: '[SLIDE LABEL]'
+                slideColor: 0 0 0 1
+            presentationName: '[PRESENTATION TITLE]'
+            presentationHasTimeline: 0
+            presentationCurrentLocation: '[PRESENTATION PATH OF CURRENTLY ACTIVE SLIDE]'
+    presentationCurrent__pub:
+      name: presentationCurrent__pub
+      title: presentationCurrent (publish)
+      summary: Request Current Presentation
+      description: |
+        Requests the currently active presentation if there is one. If no presentation has a slide
+        active, then nothing will be returned.
+
+        NOTE: You can distinguish this response from a presentationRequest request
+        because this response will include presentationPath as a field at the root level
+        of the response.
+
+
+        **RELATED RESPONSE**: [presentationCurrent (subscribe)](#message-presentationCurrent__sub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: presentationCurrent
+          presentationSlideQuality:
+            type: integer
+        required:
+        - action
+        additionalProperties: false
+    presentationCurrent__sub:
+      name: presentationCurrent__sub
+      title: presentationCurrent (subscribe)
+      summary: Request Current Presentation
+      description: |
+        Requests the currently active presentation if there is one. If no presentation has a slide
+        active, then nothing will be returned.
+
+        NOTE: You can distinguish this response from a presentationRequest request
+        because this response will include presentationPath as a field at the root level
+        of the response.
+
+
+        **RELATED COMMAND**: [presentationCurrent (publish)](#message-presentationCurrent__pub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: presentationCurrent
+          presentationPath:
+            $ref: '#/components/schemas/itemLocation'
+          presentation:
+            $ref: '#/components/schemas/presentation'
+        required:
+        - action
+        - presentationPath
+        - presentation
+        additionalProperties: false
+    presentationSlideIndex__pub:
+      name: presentationSlideIndex__pub
+      title: presentationSlideIndex (publish)
+      summary: Get the Index of the Current Slide
+      description: |
+        - Slides are indexed from 0
+        - This response always sends the slideIndex as a `string` value
+        - The ProPresenter remote issues this action every time it does a `presentationRequest`
+
+
+        **RELATED RESPONSE**: [presentationSlideIndex (subscribe)](#message-presentationSlideIndex__sub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: presentationSlideIndex
+        required:
+        - action
+        additionalProperties: false
+    presentationSlideIndex__sub:
+      name: presentationSlideIndex__sub
+      title: presentationSlideIndex (subscribe)
+      summary: Get the Index of the Current Slide
+      description: |
+        - Slides are indexed from 0
+        - This response always sends the slideIndex as a `string` value
+        - The ProPresenter remote issues this action every time it does a `presentationRequest`
+
+
+        **RELATED COMMAND**: [presentationSlideIndex (publish)](#message-presentationSlideIndex__pub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: presentationSlideIndex
+          slideIndex:
+            type: string
+            examples:
+            - 0
+        required:
+        - action
+        - slideIndex
+        additionalProperties: false
+    presentationTriggerIndex__pub:
+      name: presentationTriggerIndex__pub
+      title: presentationTriggerIndex (publish)
+      summary: Activate a Slide
+      description: |
+        Works just like clicking on a slide
+
+        **RELATED RESPONSE**: [presentationTriggerIndex (subscribe)](#message-presentationTriggerIndex__sub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: presentationTriggerIndex
+          slideIndex:
+            type: integer
+          presentationPath:
+            $ref: '#/components/schemas/itemLocation'
+            examples:
+            - |-
+              0:0
+        required:
+        - action
+        - slideIndex
+        - presentationPath
+        additionalProperties: false
+    presentationTriggerIndex__sub:
+      name: presentationTriggerIndex__sub
+      title: presentationTriggerIndex (subscribe)
+      summary: Activate a Slide
+      description: |
+        Works just like clicking on a slide
+
+        **RELATED COMMAND**: [presentationTriggerIndex (publish)](#message-presentationTriggerIndex__pub)
+      payload:
+        $ref: '#/components/schemas/presentationTriggerMessage'
+    presentationTriggerNext__pub:
+      name: presentationTriggerNext__pub
+      title: presentationTriggerNext (publish)
+      summary: Activate the Next Slide
+      description: |
+        Works just like hitting the right arrow or spacebar.
+
+        **RELATED RESPONSE**: [presentationTriggerNext (subscribe)](#message-presentationTriggerNext__sub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: presentationTriggerNext
+        required:
+        - action
+        additionalProperties: false
+    presentationTriggerNext__sub:
+      name: presentationTriggerNext__sub
+      title: presentationTriggerNext (subscribe)
+      summary: Activate the Next Slide
+      description: |
+        Works just like hitting the right arrow or spacebar.
+
+        **RELATED COMMAND**: [presentationTriggerNext (publish)](#message-presentationTriggerNext__pub)
+      payload:
+        $ref: '#/components/schemas/presentationTriggerMessage'
+    presentationTriggerPrevious__pub:
+      name: presentationTriggerPrevious__pub
+      title: presentationTriggerPrevious (publish)
+      summary: Activate the Previous Slide
+      description: |
+        Works just like hitting the left arrow.
+
+        **RELATED RESPONSE**: [presentationTriggerPrevious (subscribe)](#message-presentationTriggerPrevious__sub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: presentationTriggerPrevious
+        required:
+        - action
+        additionalProperties: false
+    presentationTriggerPrevious__sub:
+      name: presentationTriggerPrevious__sub
+      title: presentationTriggerPrevious (subscribe)
+      summary: Activate the Previous Slide
+      description: |
+        Works just like hitting the left arrow.
+
+        **RELATED COMMAND**: [presentationTriggerPrevious (publish)](#message-presentationTriggerPrevious__pub)
+      payload:
+        $ref: '#/components/schemas/presentationTriggerMessage'
+    audioRequest__pub:
+      name: audioRequest__pub
+      title: audioRequest (publish)
+      summary: Get Audio Library
+      description: |
+        Will return all the items in the audio library
+
+        **RELATED RESPONSE**: [audioRequest (subscribe)](#message-audioRequest__sub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: audioRequest
+        required:
+        - action
+        additionalProperties: false
+    audioRequest__sub:
+      name: audioRequest__sub
+      title: audioRequest (subscribe)
+      summary: Get Audio Library
+      description: |
+        Will return all the items in the audio library
+
+        **RELATED COMMAND**: [audioRequest (publish)](#message-audioRequest__pub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: audioRequest
+          audioPlaylist:
+            type: array
+            items:
+            - $ref: '#/components/schemas/playlistUnionType'
+        required:
+        - action
+        - audioPlaylist
+        additionalProperties: false
+    audioCurrentSong__pub:
+      name: audioCurrentSong__pub
+      title: audioCurrentSong (publish)
+      summary: Get the Current Song
+      description: |
+        Will return the data for the currently playing song, if there is one.
+
+        **RELATED RESPONSE**: [audioCurrentSong (subscribe)](#message-audioCurrentSong__sub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: audioCurrentSong
+        required:
+        - action
+        additionalProperties: false
+    audioCurrentSong__sub:
+      name: audioCurrentSong__sub
+      title: audioCurrentSong (subscribe)
+      summary: Get the Current Song
+      description: |
+        Will return the data for the currently playing song, if there is one.
+
+        **RELATED COMMAND**: [audioCurrentSong (publish)](#message-audioCurrentSong__pub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: audioCurrentSong
+          audioArtist:
+            type: string
+          audiosummary:
+            type: string
+        required:
+        - action
+        - audioArtist
+        - audiosummary
+        additionalProperties: false
+      examples:
+      - payload:
+          audioArtist: ''
+          action: audioCurrentSong
+          audioName: Peaceful Instrumental - C
+    audioIsPlaying__pub:
+      name: audioIsPlaying__pub
+      title: audioIsPlaying (publish)
+      summary: Is Audio Playing (BROKEN)
+      description: |
+        This api request exists, but it always reports `false`
+
+        **RELATED RESPONSE**: [audioIsPlaying (subscribe)](#message-audioIsPlaying__sub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: audioIsPlaying
+        required:
+        - action
+        additionalProperties: false
+    audioIsPlaying__sub:
+      name: audioIsPlaying__sub
+      title: audioIsPlaying (subscribe)
+      summary: Is Audio Playing (BROKEN)
+      description: |
+        This api request exists, but it always reports `false`
+
+        **RELATED COMMAND**: [audioIsPlaying (publish)](#message-audioIsPlaying__pub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: audioIsPlaying
+          audioIsPlaying:
+            const: false
+        required:
+        - action
+        - audioIsPlaying
+        additionalProperties: false
+    audioStartCue__pub:
+      name: audioStartCue__pub
+      title: audioStartCue (publish)
+      summary: Start Audio Cue
+      description: |
+        This command will result in an `audioTriggered` message, but since the
+        play/pause status has changed, ProPresenter will also send an `audioPlayPause` message.
+
+
+        **RELATED RESPONSE**: [audioStartCue (subscribe)](#message-audioStartCue__sub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: audioStartCue
+          audioChildPath:
+            $ref: '#/components/schemas/itemLocation'
+        required:
+        - action
+        - audioChildPath
+        additionalProperties: false
+    audioStartCue__sub:
+      name: audioStartCue__sub
+      title: audioStartCue (subscribe)
+      summary: Start Audio Cue
+      description: |
+        This command will result in an `audioTriggered` message, but since the
+        play/pause status has changed, ProPresenter will also send an `audioPlayPause` message.
+
+
+        **RELATED COMMAND**: [audioStartCue (publish)](#message-audioStartCue__pub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: audioTriggered
+          audioArtist:
+            type: string
+          audiosummary:
+            type: string
+        required:
+        - action
+        - audioArtist
+        - audiosummary
+        additionalProperties: false
+      examples:
+      - payload:
+          audioArtist: ''
+          action: audioTriggered
+          audioName: Peaceful Instrumental - C
+    audioPlayPause__pub:
+      name: audioPlayPause__pub
+      title: audioPlayPause (publish)
+      summary: Toggle the Audio Play State
+      description: |2
+
+
+        **RELATED RESPONSE**: [audioPlayPause (subscribe)](#message-audioPlayPause__sub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: audioPlayPause
+        required:
+        - action
+        additionalProperties: false
+    audioPlayPause__sub:
+      name: audioPlayPause__sub
+      title: audioPlayPause (subscribe)
+      summary: Toggle the Audio Play State
+      description: |2
+
+
+        **RELATED COMMAND**: [audioPlayPause (publish)](#message-audioPlayPause__pub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: audioPlayPause
+          audioPlayPause:
+            type: string
+            enum:
+            - Play
+            - Pause
+        required:
+        - action
+        - audioPlayPause
+        additionalProperties: false
+    timelinePlayPause__pub:
+      name: timelinePlayPause__pub
+      title: timelinePlayPause (publish)
+      summary: Toggle the Timeline Play State
+      description: |-
+        If `presentationPath` is missing, Pro6 will crash.
+
+        NO RESPONSE
+      payload:
+        type: object
+        properties:
+          action:
+            const: timelinePlayPause
+          presentationPath:
+            $ref: '#/components/schemas/itemLocation'
+        required:
+        - action
+        - presentationPath
+        additionalProperties: false
+    timelineRewind__pub:
+      name: timelineRewind__pub
+      title: timelineRewind (publish)
+      summary: Reset the Timeline for a Presentation
+      description: |-
+        If `presentationPath` is missing, Pro6 will crash.
+
+        NO RESPONSE
+      payload:
+        type: object
+        properties:
+          action:
+            const: timelineRewind
+          presentationPath:
+            $ref: '#/components/schemas/itemLocation'
+        required:
+        - action
+        - presentationPath
+        additionalProperties: false
+    clockRequest__pub:
+      name: clockRequest__pub
+      title: clockRequest (publish)
+      summary: Request all Clock data
+      description: |2
+
+
+        **RELATED RESPONSE**: [clockRequest (subscribe)](#message-clockRequest__sub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: clockRequest
+        required:
+        - action
+        additionalProperties: false
+    clockRequest__sub:
+      name: clockRequest__sub
+      title: clockRequest (subscribe)
+      summary: Request all Clock data
+      description: |2
+
+
+        **RELATED COMMAND**: [clockRequest (publish)](#message-clockRequest__pub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: clockRequest
+          clockInfo:
+            type: array
+            items:
+            - $ref: '#/components/schemas/clockDetail'
+        required:
+        - action
+        - clockInfo
+        additionalProperties: false
+    clockCurrentTimes__pub:
+      name: clockCurrentTimes__pub
+      title: clockCurrentTimes (publish)
+      summary: Get Current Times for All Clocks
+      description: |2
+
+
+        **RELATED RESPONSE**: [clockCurrentTimes (subscribe)](#message-clockCurrentTimes__sub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: clockCurrentTimes
+        required:
+        - action
+        additionalProperties: false
+    clockCurrentTimes__sub:
+      name: clockCurrentTimes__sub
+      title: clockCurrentTimes (subscribe)
+      summary: Get Current Times for All Clocks
+      description: |2
+
+
+        **RELATED COMMAND**: [clockCurrentTimes (publish)](#message-clockCurrentTimes__pub)
+      payload:
+        $ref: '#/components/schemas/clockCurrentTimesMessage'
+    clockStartSendingCurrentTime__pub:
+      name: clockStartSendingCurrentTime__pub
+      title: clockStartSendingCurrentTime (publish)
+      summary: Subscribe to Clock Updates
+      description: |
+        ProPresenter will send one clock update every second even if no clock values have changed.
+
+        The response payload is exactly the same as `clockCurrentTimes`
+
+
+        **RELATED RESPONSE**: [clockStartSendingCurrentTime (subscribe)](#message-clockStartSendingCurrentTime__sub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: clockStartSendingCurrentTime
+        required:
+        - action
+        additionalProperties: false
+    clockStartSendingCurrentTime__sub:
+      name: clockStartSendingCurrentTime__sub
+      title: clockStartSendingCurrentTime (subscribe)
+      summary: Subscribe to Clock Updates
+      description: |
+        ProPresenter will send one clock update every second even if no clock values have changed.
+
+        The response payload is exactly the same as `clockCurrentTimes`
+
+
+        **RELATED COMMAND**: [clockStartSendingCurrentTime (publish)](#message-clockStartSendingCurrentTime__pub)
+      payload:
+        $ref: '#/components/schemas/clockCurrentTimesMessage'
+    clockStopSendingCurrentTime__pub:
+      name: clockStopSendingCurrentTime__pub
+      title: clockStopSendingCurrentTime (publish)
+      summary: Unsubscribe from Clock Updates
+      description: |2-
+
+
+        NO RESPONSE
+      payload:
+        type: object
+        properties:
+          action:
+            const: clockStopSendingCurrentTime
+        required:
+        - action
+        additionalProperties: false
+    clockStart__pub:
+      name: clockStart__pub
+      title: clockStart (publish)
+      summary: Start a Specific Clock
+      description: |2
+
+
+        **RELATED RESPONSE**: [clockStart (subscribe)](#message-clockStart__sub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: clockStart
+          clockIndex:
+            type: integer
+        required:
+        - action
+        - clockIndex
+        additionalProperties: false
+    clockStart__sub:
+      name: clockStart__sub
+      title: clockStart (subscribe)
+      summary: Start a Specific Clock
+      description: |2
+
+
+        **RELATED COMMAND**: [clockStart (publish)](#message-clockStart__pub)
+      payload:
+        $ref: '#/components/schemas/clockStartStopMessage'
+    clockStop__pub:
+      name: clockStop__pub
+      title: clockStop (publish)
+      summary: Stop a Specific Clock
+      description: |2
+
+
+        **RELATED RESPONSE**: [clockStop (subscribe)](#message-clockStop__sub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: clockStop
+          clockIndex:
+            type: integer
+        required:
+        - action
+        - clockIndex
+        additionalProperties: false
+    clockStop__sub:
+      name: clockStop__sub
+      title: clockStop (subscribe)
+      summary: Stop a Specific Clock
+      description: |2
+
+
+        **RELATED COMMAND**: [clockStop (publish)](#message-clockStop__pub)
+      payload:
+        $ref: '#/components/schemas/clockStartStopMessage'
+    clockReset__pub:
+      name: clockReset__pub
+      title: clockReset (publish)
+      summary: Reset a clock back to initial settings
+      description: |2
+
+
+        **RELATED RESPONSE**: [clockReset (subscribe)](#message-clockReset__sub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: clockReset
+          clockIndex:
+            type: integer
+        required:
+        - action
+        - clockIndex
+        additionalProperties: false
+    clockReset__sub:
+      name: clockReset__sub
+      title: clockReset (subscribe)
+      summary: Reset a clock back to initial settings
+      description: |2
+
+
+        **RELATED COMMAND**: [clockReset (publish)](#message-clockReset__pub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: clockResetIndex
+        required:
+        - action
+        additionalProperties: false
+    clockUpdate__pub:
+      name: clockUpdate__pub
+      title: clockUpdate (publish)
+      summary: Update a Clock (Timer) (eg edit time)
+      description: |-
+        * Clocks are referenced by index. See reply from "clockRequest" action above to learn indexes.
+        * Not all parameters are required for each clock type.
+          * Countdown clocks only need "clockTime".
+          * Elapsed Time Clocks need "clockTime" and optionally will use "clockElapsedTime" if you send it (to set the End Time).
+          * You can rename a clock by optionally including the clockName.
+          * Type 0 is Countdown
+          * Type 1 is CountDown to Time
+          * Type 2 is Elapsed Time.
+          * Overrun can be modified if you choose to include that as well.
+
+        NO RESPONSE
+      payload:
+        type: object
+        properties:
+          action:
+            const: clockUpdate
+          clockIndex:
+            type: integer
+            examples:
+            - 1
+          clockType:
+            type: integer
+            examples:
+            - 0
+          clockTime:
+            type: string
+            examples:
+            - |-
+              09:04:00
+          clockOverrun:
+            type: integer
+            examples:
+            - 0
+          clockIsPM:
+            type: integer
+            examples:
+            - 1
+          clocksummary:
+            type: string
+            examples:
+            - |-
+              Countdown 2
+          clockElapsedTime:
+            type: string
+            examples:
+            - |-
+              0:02:00
+        required:
+        - action
+        - clockIndex
+        - clockType
+        - clockTime
+        - clockOverrun
+        - clockIsPM
+        - clocksummary
+        - clockElapsedTime
+        additionalProperties: false
+      examples:
+      - payload:
+          action: clockUpdate
+          clockIndex: 1
+          clockType: 0
+          clockTime: 09:04:00
+          clockOverrun: false
+          clockIsPM: 1
+          clockName: Countdown 2
+          clockElapsedTime: 0:02:00
+    clockResetAll__pub:
+      name: clockResetAll__pub
+      title: clockResetAll (publish)
+      description: |2-
+
+
+        NO RESPONSE
+      payload:
+        type: object
+        properties:
+          action:
+            const: clockResetAll
+        required:
+        - action
+        additionalProperties: false
+      examples:
+      - payload:
+          action: clockResetAll
+    clockStopAll__pub:
+      name: clockStopAll__pub
+      title: clockStopAll (publish)
+      description: |2-
+
+
+        NO RESPONSE
+      payload:
+        type: object
+        properties:
+          action:
+            const: clockStopAll
+        required:
+        - action
+        additionalProperties: false
+      examples:
+      - payload:
+          action: clockStopAll
+    clockStartAll__pub:
+      name: clockStartAll__pub
+      title: clockStartAll (publish)
+      description: |2-
+
+
+        NO RESPONSE
+      payload:
+        type: object
+        properties:
+          action:
+            const: clockStartAll
+        required:
+        - action
+        additionalProperties: false
+      examples:
+      - payload:
+          action: clockStartAll
+    messageRequest__pub:
+      name: messageRequest__pub
+      title: messageRequest (publish)
+      summary: Get all Messages
+      description: |
+        * The key is everything inside the curly braces `${}` so that the key for a countdown looks like this `Countdown 1: H:MM:SS`.
+        * If the key refers to a countdown, the value is used to update the `duration` field of the countdown timer, but will not perform a "reset".
+        * If the key refers to a countdown and the countdown is not running, this will resume it from its current value.
+
+        **RELATED RESPONSE**: [messageRequest (subscribe)](#message-messageRequest__sub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: messageRequest
+        required:
+        - action
+        additionalProperties: false
+      examples:
+      - payload:
+          action: messageRequest
+    messageRequest__sub:
+      name: messageRequest__sub
+      title: messageRequest (subscribe)
+      summary: Get all Messages
+      description: |
+        * The key is everything inside the curly braces `${}` so that the key for a countdown looks like this `Countdown 1: H:MM:SS`.
+        * If the key refers to a countdown, the value is used to update the `duration` field of the countdown timer, but will not perform a "reset".
+        * If the key refers to a countdown and the countdown is not running, this will resume it from its current value.
+
+        **RELATED COMMAND**: [messageRequest (publish)](#message-messageRequest__pub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: messageRequest
+          messages:
+            type: array
+            items:
+            - $ref: '#/components/schemas/screenMessage'
+        required:
+        - action
+        - messages
+        additionalProperties: false
+      examples:
+      - payload:
+          action: messageRequest
+          messages:
+          - messageComponents:
+            - 'message:'
+            - ${Message}
+            messageTitle: Message
+          - messageComponents:
+            - 'Session will begin in: '
+            - '${Countdown 1: H:MM:SS}'
+            messageTitle: Countdown
+          - messageComponents:
+            - ${Message}
+            messageTitle: Message
+          - messageComponents:
+            - 'Service starts in '
+            - '${countDownTimerName_1: H:MM:SS}'
+            messageTitle: Countdown
+    messageSend__pub:
+      name: messageSend__pub
+      title: messageSend (publish)
+      summary: Display a Message
+      description: |-
+        Display a message identified by its index. Add as many key, value
+        pairs as you like.
+
+        See `messageRequest` for more information about keys.
+
+        NO RESPONSE
+      payload:
+        type: object
+        properties:
+          action:
+            const: messageSend
+          messageIndex:
+            type: integer
+          messageKeys:
+            type: array
+            items:
+            - type: string
+          messageValues:
+            type: array
+            items:
+            - type: string
+        required:
+        - action
+        - messageIndex
+        - messageKeys
+        - messageValues
+        additionalProperties: false
+    messageHide__pub:
+      name: messageHide__pub
+      title: messageHide (publish)
+      summary: Hide a Message
+      description: |-
+        Hide a message identified by its index
+
+        NO RESPONSE
+      payload:
+        type: object
+        properties:
+          action:
+            const: messageHide
+          messageIndex:
+            type: integer
+        required:
+        - action
+        - messageIndex
+        additionalProperties: false
+    stageDisplaySendMessage__pub:
+      name: stageDisplaySendMessage__pub
+      title: stageDisplaySendMessage (publish)
+      summary: Show Stage Display Message
+      description: |2-
+
+
+        NO RESPONSE
+      payload:
+        type: object
+        properties:
+          action:
+            const: stageDisplaySendMessage
+          stageDisplayMessage:
+            type: string
+            examples:
+            - |-
+              Type a Message Here
+        required:
+        - action
+        - stageDisplayMessage
+        additionalProperties: false
+      examples:
+      - payload:
+          action: stageDisplaySendMessage
+          stageDisplayMessage: Type a Message Here
+    stageDisplayHideMessage__pub:
+      name: stageDisplayHideMessage__pub
+      title: stageDisplayHideMessage (publish)
+      summary: Hide Stage Display Message
+      description: |2-
+
+
+        NO RESPONSE
+      payload:
+        type: object
+        properties:
+          action:
+            const: stageDisplayHideMessage
+        required:
+        - action
+        additionalProperties: false
+      examples:
+      - payload:
+          action: stageDisplayHideMessage
+    stageDisplaySetIndex__pub:
+      name: stageDisplaySetIndex__pub
+      title: stageDisplaySetIndex (publish)
+      summary: Select Stage Display Layout
+      description: |
+        EXPECTED RESPONSE IS THE SAME AS THE SENT COMMAND
+
+
+        **RELATED RESPONSE**: [stageDisplaySetIndex (subscribe)](#message-stageDisplaySetIndex__sub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: stageDisplaySetIndex
+          stageDisplayIndex:
+            type: integer
+            examples:
+            - 0
+        required:
+        - action
+        - stageDisplayIndex
+        additionalProperties: false
+      examples:
+      - payload:
+          action: stageDisplaySetIndex
+          stageDisplayIndex: 0
+    stageDisplaySetIndex__sub:
+      name: stageDisplaySetIndex__sub
+      title: stageDisplaySetIndex (subscribe)
+      summary: Select Stage Display Layout
+      description: |
+        EXPECTED RESPONSE IS THE SAME AS THE SENT COMMAND
+
+
+        **RELATED COMMAND**: [stageDisplaySetIndex (publish)](#message-stageDisplaySetIndex__pub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: stageDisplaySetIndex
+          stageDisplayIndex:
+            type: integer
+            examples:
+            - 0
+        required:
+        - action
+        - stageDisplayIndex
+        additionalProperties: false
+      examples:
+      - payload:
+          action: stageDisplaySetIndex
+          stageDisplayIndex: 0
+    stageDisplaySets__pub:
+      name: stageDisplaySets__pub
+      title: stageDisplaySets (publish)
+      summary: Get Stage Display Layouts
+      description: |2
+
+
+        **RELATED RESPONSE**: [stageDisplaySets (subscribe)](#message-stageDisplaySets__sub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: stageDisplaySets
+        required:
+        - action
+        additionalProperties: false
+      examples:
+      - payload:
+          action: stageDisplaySets
+    stageDisplaySets__sub:
+      name: stageDisplaySets__sub
+      title: stageDisplaySets (subscribe)
+      summary: Get Stage Display Layouts
+      description: |2
+
+
+        **RELATED COMMAND**: [stageDisplaySets (publish)](#message-stageDisplaySets__pub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: stageDisplaySets
+          stageDisplayIndex:
+            type: integer
+            examples:
+            - 4
+          stageDisplaySets:
+            type: array
+            items:
+            - type: string
+        required:
+        - action
+        - stageDisplayIndex
+        - stageDisplaySets
+        additionalProperties: false
+      examples:
+      - payload:
+          stageDisplayIndex: 4
+          action: stageDisplaySets
+          stageDisplaySets:
+          - Default
+          - Easter Closer
+          - Live Current - Static Next - no borders
+          - Static Current - Static Next
+          - Songs
+          - Slides
+    clearAll__pub:
+      name: clearAll__pub
+      title: clearAll (publish)
+      summary: Clear All
+      description: |2-
+
+
+        NO RESPONSE
+      payload:
+        type: object
+        properties:
+          action:
+            const: clearAll
+        required:
+        - action
+        additionalProperties: false
+      examples:
+      - payload:
+          action: clearAll
+    clearText__pub:
+      name: clearText__pub
+      title: clearText (publish)
+      summary: Clear Slide
+      description: |2-
+
+
+        NO RESPONSE
+      payload:
+        type: object
+        properties:
+          action:
+            const: clearText
+        required:
+        - action
+        additionalProperties: false
+      examples:
+      - payload:
+          action: clearText
+    clearProps__pub:
+      name: clearProps__pub
+      title: clearProps (publish)
+      summary: Clear Props
+      description: |2-
+
+
+        NO RESPONSE
+      payload:
+        type: object
+        properties:
+          action:
+            const: clearProps
+        required:
+        - action
+        additionalProperties: false
+      examples:
+      - payload:
+          action: clearProps
+    clearAudio__pub:
+      name: clearAudio__pub
+      title: clearAudio (publish)
+      summary: Clear Audio
+      description: |2-
+
+
+        NO RESPONSE
+      payload:
+        type: object
+        properties:
+          action:
+            const: clearAudio
+        required:
+        - action
+        additionalProperties: false
+      examples:
+      - payload:
+          action: clearAudio
+    clearVideo__pub:
+      name: clearVideo__pub
+      title: clearVideo (publish)
+      summary: Clear Video
+      description: |2-
+
+
+        NO RESPONSE
+      payload:
+        type: object
+        properties:
+          action:
+            const: clearVideo
+        required:
+        - action
+        additionalProperties: false
+      examples:
+      - payload:
+          action: clearVideo
+    clearTelestrator__pub:
+      name: clearTelestrator__pub
+      title: clearTelestrator (publish)
+      summary: Clear Telestrator
+      description: |2-
+
+
+        NO RESPONSE
+      payload:
+        type: object
+        properties:
+          action:
+            const: clearTelestrator
+        required:
+        - action
+        additionalProperties: false
+      examples:
+      - payload:
+          action: clearTelestrator
+    clearToLogo__pub:
+      name: clearToLogo__pub
+      title: clearToLogo (publish)
+      summary: Clear To Logo
+      description: |2-
+
+
+        NO RESPONSE
+      payload:
+        type: object
+        properties:
+          action:
+            const: clearToLogo
+        required:
+        - action
+        additionalProperties: false
+      examples:
+      - payload:
+          action: clearToLogo
+    ath__pub:
+      name: ath__pub
+      title: ath (publish)
+      summary: StageDisplayAuthentication
+      description: |2
+
+
+        **RELATED RESPONSE**: [ath (subscribe)](#message-ath__sub)
+      payload:
+        type: object
+        properties:
+          acn:
+            const: ath
+          ptl:
+            const: 610
+          pwd:
+            type: string
+        required:
+        - acn
+        - ptl
+        - pwd
+        additionalProperties: false
+      examples:
+      - payload:
+          pwd: PASSWORD
+          ptl: 610
+          acn: ath
+    ath__sub:
+      name: ath__sub
+      title: ath (subscribe)
+      summary: StageDisplayAuthentication
+      description: |2
+
+
+        **RELATED COMMAND**: [ath (publish)](#message-ath__pub)
+      payload:
+        type: object
+        properties:
+          acn:
+            const: ath
+          ath:
+            type: boolean
+          err:
+            type: string
+        required:
+        - acn
+        - ath
+        - err
+        additionalProperties: false
+      examples:
+      - payload:
+          acn: ath
+          ath: true
+          err: ''
+    asl__pub:
+      name: asl__pub
+      title: asl (publish)
+      summary: Get All Stage Display Layouts
+      description: |
+        * `acn` of `asl` means "all stage layouts"
+        * `ary` indicates array of stage layouts
+
+        **RELATED RESPONSE**: [asl (subscribe)](#message-asl__sub)
+      payload:
+        type: object
+        properties:
+          acn:
+            const: asl
+        required:
+        - acn
+        additionalProperties: false
+      examples:
+      - payload:
+          acn: asl
+    asl__sub:
+      name: asl__sub
+      title: asl (subscribe)
+      summary: Get All Stage Display Layouts
+      description: |
+        * `acn` of `asl` means "all stage layouts"
+        * `ary` indicates array of stage layouts
+
+        **RELATED COMMAND**: [asl (publish)](#message-asl__pub)
+      payload:
+        type: object
+        properties:
+          acn:
+            const: asl
+          ary:
+            type: array
+            items:
+            - $ref: '#/components/schemas/stageDisplayLayout'
+        required:
+        - acn
+        - ary
+        additionalProperties: false
+      examples:
+      - payload:
+          acn: asl
+          ary:
+          - brd: true
+            uid: 753B184F-CCCD-42F9-A883-D1DF86E1FFB8
+            zro: 0
+            oCl: 1.000000 0.000000 0.000000
+            fme:
+            - ufr: '{{0.025000000000000001, 0.37418655097613884}, {0.40000000000000002, 0.50108459869848154}}'
+              mde: 1
+              tCl: 1.000000 1.000000 1.000000
+              tAl: 2
+              tSz: 60
+              nme: Current Slide
+              typ: 1
+            ovr: true
+            acn: sl
+            nme: Default
+    psl__pub:
+      name: psl__pub
+      title: psl (publish)
+      summary: Request Current Stage Display Layout
+      description: |2
+
+
+        **RELATED RESPONSE**: [psl (subscribe)](#message-psl__sub)
+      payload:
+        type: object
+        properties:
+          acn:
+            const: psl
+        required:
+        - acn
+        additionalProperties: false
+      examples:
+      - payload:
+          acn: psl
+    psl__sub:
+      name: psl__sub
+      title: psl (subscribe)
+      summary: Request Current Stage Display Layout
+      description: |2
+
+
+        **RELATED COMMAND**: [psl (publish)](#message-psl__pub)
+      payload:
+        type: object
+        properties:
+          acn:
+            const: psl
+          uid:
+            type: string
+        required:
+        - acn
+        - uid
+        additionalProperties: false
+      examples:
+      - payload:
+          acn: psl
+          uid: F8260B13-9C5B-4D2C-80F1-C72346759F11
+    fv__pub:
+      name: fv__pub
+      title: fv (publish)
+      summary: Request Frame Values for Stage Display
+      description: |
+        When the frame value is pushed as a result of a slide trigger event,
+        only `cs`, `ns`, `csn`, `nsn` will be sent.
+
+        Applications should listen for all the other `acn` values separately.
+
+
+        **RELATED RESPONSE**: [fv (subscribe)](#message-fv__sub)
+      payload:
+        type: object
+        properties:
+          acn:
+            const: fv
+          uid:
+            type: string
+        required:
+        - acn
+        - uid
+        additionalProperties: false
+      examples:
+      - payload:
+          acn: fv
+          uid: F8260B13-9C5B-4D2C-80F1-C72346759F11
+    fv__sub:
+      name: fv__sub
+      title: fv (subscribe)
+      summary: Request Frame Values for Stage Display
+      description: |
+        When the frame value is pushed as a result of a slide trigger event,
+        only `cs`, `ns`, `csn`, `nsn` will be sent.
+
+        Applications should listen for all the other `acn` values separately.
+
+
+        **RELATED COMMAND**: [fv (publish)](#message-fv__pub)
+      payload:
+        type: object
+        properties:
+          acn:
+            const: fv
+          ary:
+            type: array
+            items:
+            - $ref: '#/components/schemas/stageDisplayFrameValue'
+        required:
+        - acn
+        - ary
+        additionalProperties: false
+      examples:
+      - payload:
+          acn: fv
+          ary:
+          - acn: cs
+            uid: FAFCA1CB-8CB8-4E53-8B7C-8D61154516D0
+            txt: ''
+          - acn: ns
+            uid: 95D16968-589A-11EB-8D62-FCAA147AEF2F
+            txt: ''
+          - acn: csn
+            txt: '[sermon_start]
+
+              event[2888]
+
+              vmixoverlay[1,Out]
+
+              live[1]'
+          - acn: nsn
+            txt: vmixoverlay[2,Out]
+          - acn: msg
+            txt: ''
+          - acn: sys
+            txt: ' 9:57 AM'
+          - acn: tmr
+            uid: 47E8B48C-0D61-4EFC-9517-BF9FB894C8E2
+            txt: 0:09:59
+          - acn: vid
+            txt: ''
+          - acn: cc
+            uid: ''
+    sl__sub:
+      name: sl__sub
+      title: sl (subscribe)
+      summary: On New Stage Display Selected
+      description: |-
+        * `acn` of `sl` indicates this is a single stage layout
+
+        THIS IS A SUBSCRIBE-ONLY MESSAGE
+      payload:
+        $ref: '#/components/schemas/stageDisplayLayout'
+    sys__sub:
+      name: sys__sub
+      title: sys (subscribe)
+      summary: On New System Time
+      description: |2-
+
+
+        THIS IS A SUBSCRIBE-ONLY MESSAGE
+      payload:
+        type: object
+        properties:
+          acn:
+            const: sys
+          txt:
+            type: string
+            examples:
+            - |2-
+               11:17 AM
+        required:
+        - acn
+        - txt
+        additionalProperties: false
+      examples:
+      - payload:
+          acn: sys
+          txt: ' 11:17 AM'
+    vid__sub:
+      name: vid__sub
+      title: vid (subscribe)
+      summary: On New Video Countdown Time
+      description: |-
+        Time follows the same H:MM:SS format as the remote protocol.
+
+        THIS IS A SUBSCRIBE-ONLY MESSAGE
+      payload:
+        type: object
+        properties:
+          acn:
+            const: vid
+          txt:
+            type: string
+            examples:
+            - |-
+              --:--:--
+        required:
+        - acn
+        - txt
+        additionalProperties: false
+      examples:
+      - payload:
+          acn: vid
+          txt: 0:00:18
+    cc__sub:
+      name: cc__sub
+      title: cc (subscribe)
+      summary: On New Chord Chart
+      description: |-
+        Chord chart images can be downloaded in the same way as slide preview images
+
+        http://PROPRESENTER_IP:PROPRESENTER_PORT/stage/image/UID
+
+        THIS IS A SUBSCRIBE-ONLY MESSAGE
+      payload:
+        type: object
+        properties:
+          acn:
+            const: cc
+          uid:
+            type: string
+            examples:
+            - |-
+              E65DF4DF-960D-4CF5-ADF5-60F200F6AFF7
+        required:
+        - acn
+        - uid
+        additionalProperties: false
+      examples:
+      - payload:
+          acn: cc
+          uid: E65DF4DF-960D-4CF5-ADF5-60F200F6AFF7
+    tmr__sub:
+      name: tmr__sub
+      title: tmr (subscribe)
+      summary: On Timer Update
+      description: |2-
+
+
+        THIS IS A SUBSCRIBE-ONLY MESSAGE
+      payload:
+        type: object
+        properties:
+          acn:
+            const: tmr
+          uid:
+            description: |-
+              timer uid
+            type: string
+          txt:
+            description: |-
+              timer text
+            type: string
+        required:
+        - acn
+        - uid
+        - txt
+        additionalProperties: false
+      examples:
+      - payload:
+          acn: tmr
+          uid: '[TIMER UID]'
+          txt: --:--:--
+channels:
+  /remote:
+    publish:
+      description: Send messages to the API
+      message:
+        oneOf:
+        - $ref: '#/components/messages/authenticate__pub'
+        - $ref: '#/components/messages/libraryRequest__pub'
+        - $ref: '#/components/messages/playlistRequestAll__pub'
+        - $ref: '#/components/messages/presentationRequest__pub'
+        - $ref: '#/components/messages/presentationCurrent__pub'
+        - $ref: '#/components/messages/presentationSlideIndex__pub'
+        - $ref: '#/components/messages/presentationTriggerIndex__pub'
+        - $ref: '#/components/messages/presentationTriggerNext__pub'
+        - $ref: '#/components/messages/presentationTriggerPrevious__pub'
+        - $ref: '#/components/messages/audioRequest__pub'
+        - $ref: '#/components/messages/audioCurrentSong__pub'
+        - $ref: '#/components/messages/audioIsPlaying__pub'
+        - $ref: '#/components/messages/audioStartCue__pub'
+        - $ref: '#/components/messages/audioPlayPause__pub'
+        - $ref: '#/components/messages/timelinePlayPause__pub'
+        - $ref: '#/components/messages/timelineRewind__pub'
+        - $ref: '#/components/messages/clockRequest__pub'
+        - $ref: '#/components/messages/clockCurrentTimes__pub'
+        - $ref: '#/components/messages/clockStartSendingCurrentTime__pub'
+        - $ref: '#/components/messages/clockStopSendingCurrentTime__pub'
+        - $ref: '#/components/messages/clockStart__pub'
+        - $ref: '#/components/messages/clockStop__pub'
+        - $ref: '#/components/messages/clockReset__pub'
+        - $ref: '#/components/messages/clockUpdate__pub'
+        - $ref: '#/components/messages/clockResetAll__pub'
+        - $ref: '#/components/messages/clockStopAll__pub'
+        - $ref: '#/components/messages/clockStartAll__pub'
+        - $ref: '#/components/messages/messageRequest__pub'
+        - $ref: '#/components/messages/messageSend__pub'
+        - $ref: '#/components/messages/messageHide__pub'
+        - $ref: '#/components/messages/stageDisplaySendMessage__pub'
+        - $ref: '#/components/messages/stageDisplayHideMessage__pub'
+        - $ref: '#/components/messages/stageDisplaySetIndex__pub'
+        - $ref: '#/components/messages/stageDisplaySets__pub'
+        - $ref: '#/components/messages/clearAll__pub'
+        - $ref: '#/components/messages/clearText__pub'
+        - $ref: '#/components/messages/clearProps__pub'
+        - $ref: '#/components/messages/clearAudio__pub'
+        - $ref: '#/components/messages/clearVideo__pub'
+        - $ref: '#/components/messages/clearTelestrator__pub'
+        - $ref: '#/components/messages/clearToLogo__pub'
+    subscribe:
+      description: Receive messages from the API
+      message:
+        oneOf:
+        - $ref: '#/components/messages/authenticate__sub'
+        - $ref: '#/components/messages/libraryRequest__sub'
+        - $ref: '#/components/messages/playlistRequestAll__sub'
+        - $ref: '#/components/messages/presentationRequest__sub'
+        - $ref: '#/components/messages/presentationCurrent__sub'
+        - $ref: '#/components/messages/presentationSlideIndex__sub'
+        - $ref: '#/components/messages/presentationTriggerIndex__sub'
+        - $ref: '#/components/messages/presentationTriggerNext__sub'
+        - $ref: '#/components/messages/presentationTriggerPrevious__sub'
+        - $ref: '#/components/messages/audioRequest__sub'
+        - $ref: '#/components/messages/audioCurrentSong__sub'
+        - $ref: '#/components/messages/audioIsPlaying__sub'
+        - $ref: '#/components/messages/audioStartCue__sub'
+        - $ref: '#/components/messages/audioPlayPause__sub'
+        - $ref: '#/components/messages/clockRequest__sub'
+        - $ref: '#/components/messages/clockCurrentTimes__sub'
+        - $ref: '#/components/messages/clockStartSendingCurrentTime__sub'
+        - $ref: '#/components/messages/clockStart__sub'
+        - $ref: '#/components/messages/clockStop__sub'
+        - $ref: '#/components/messages/clockReset__sub'
+        - $ref: '#/components/messages/messageRequest__sub'
+        - $ref: '#/components/messages/stageDisplaySetIndex__sub'
+        - $ref: '#/components/messages/stageDisplaySets__sub'
+  /stagedisplay:
+    publish:
+      description: Send messages to the API
+      message:
+        oneOf:
+        - $ref: '#/components/messages/ath__pub'
+        - $ref: '#/components/messages/asl__pub'
+        - $ref: '#/components/messages/psl__pub'
+        - $ref: '#/components/messages/fv__pub'
+    subscribe:
+      description: Receive messages from the API
+      message:
+        oneOf:
+        - $ref: '#/components/messages/ath__sub'
+        - $ref: '#/components/messages/asl__sub'
+        - $ref: '#/components/messages/psl__sub'
+        - $ref: '#/components/messages/fv__sub'
+        - $ref: '#/components/messages/sl__sub'
+        - $ref: '#/components/messages/sys__sub'
+        - $ref: '#/components/messages/vid__sub'
+        - $ref: '#/components/messages/cc__sub'
+        - $ref: '#/components/messages/tmr__sub'

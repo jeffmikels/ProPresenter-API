@@ -6,7 +6,7 @@ from typing import Literal
 import yaml
 from yaml.representer import SafeRepresenter
 
-# for dumping literal strings as Markdown blocks
+# for dumping literal strings as scalar literal blocks
 
 
 class LiteralString(str):
@@ -65,9 +65,13 @@ def type_to_schema(t):
   params = t.get('parameters', None)
   if params is not None:
     schema['properties'] = {}
+    schema['required'] = []
+    optional = False
     for paramname in params:
       p = params[paramname]
       if type(p) is dict:
+        if 'optional' in p and p['optional'] == True:
+          optional = True
         pschema = type_to_schema(p)
       elif type(p) is list:
         oneof = []
@@ -81,6 +85,9 @@ def type_to_schema(t):
       else:
         pschema = {'const': p}
 
+      if optional == False:
+        schema['required'].append(paramname)
+
       schema['properties'][paramname] = pschema
       schema['additionalProperties'] = False
 
@@ -92,7 +99,13 @@ def type_to_schema(t):
   # example
   example = t.get('example', '')
   if example != '':
-    schema['examples'] = [LiteralString(example)]
+    exampleObject = example
+    if type(example) is str:
+      try:
+        exampleObject = json.loads(example.replace('`', ''))
+      except:
+        exampleObject = LiteralString(example)
+    schema['examples'] = [exampleObject]
 
   return schema
 
@@ -117,15 +130,20 @@ target = target.replace('.yml-asyncapi.yaml', '-asyncapi.yaml')
 
 if len(sys.argv) == 3:
   target = sys.argv[2]
+  if target == source:
+    print('ERROR: source file and target file have the same name')
+    exit(1)
 
 # read input yaml file
+print(f'READING: {source}')
 with open(source, 'r') as f:
   t = f.read()
   data = yaml.load(t, Loader=yaml.CLoader)
 
+print('PROCESSING...')
 # include root level asyncapi data
 output = data['asyncapi']
-output.update({'channels': {}, 'components': {'schemas': {}, 'messages': {}}})
+output.update({'components': {'schemas': {}, 'messages': {}}, 'channels': {}})
 
 refs = {}
 
@@ -165,21 +183,46 @@ for channel in ['remote', 'stagedisplay']:
   for actionName in data['channels'][channel]['actions']:
     action = data['channels'][channel]['actions'][actionName]
     # print(action)
-    pubName = f'{actionName}_SEND'
-    subName = f'{actionName}_RECEIVE'
-    pubSubNames = {'publish': pubName, 'subscribe': subName}
+    pubName = f'{actionName}__pub'
+    subName = f'{actionName}__sub'
+    messageNames = {'publish': pubName, 'subscribe': subName}
+    messageTitles = {
+        'publish': f'{actionName} (publish)',
+        'subscribe': f'{actionName} (subscribe)',
+    }
 
     for pubsub in ['publish', 'subscribe']:
-      messageName = pubSubNames[pubsub]
+      messageName = messageNames[pubsub]
       message = {}
-      message['name'] = actionName
+      message['name'] = messageName             # machine readable
+      message['title'] = messageTitles[pubsub]  # human readable
 
       if 'summary' in action:
         message['summary'] = action['summary']
 
-      if 'description' in action:
-        desc = action['description']
-        message['description'] = LiteralString(desc)
+      # generate descriptive text for this message
+      desc = action.get('description', '')
+      if desc is None:
+        desc = ''
+
+      if pubsub == 'subscribe' and 'message' in action:
+        foreign = messageNames['publish']
+        linkref = f'#message-{foreign}'
+        linktext = messageTitles["publish"]
+        desc += f'\n\n**RELATED COMMAND**: [{linktext}]({linkref})\n'
+      if pubsub == 'subscribe' and 'message' not in action:
+        desc = desc.strip() + '\n\nTHIS IS A SUBSCRIBE-ONLY MESSAGE'
+
+      if pubsub == 'publish' and 'response' in action:
+        foreign = messageNames['subscribe']
+        linkref = f'#message-{foreign}'
+        linktext = messageTitles["subscribe"]
+        desc += f'\n\n**RELATED RESPONSE**: [{linktext}]({linkref})\n'
+        # message['x-response'] = {'$ref': f'#/components/messages/{foreign}'}
+
+      if pubsub == 'publish' and 'response' not in action:
+        desc = desc.strip() + '\n\nNO RESPONSE'
+      message['description'] = LiteralString(desc)
 
       key = 'response'
       if pubsub == 'publish':
@@ -198,13 +241,22 @@ for channel in ['remote', 'stagedisplay']:
           if payloadtype in refs:
             message['payload'] = {'$ref': refs[payloadtype]}
           else:
+            print('ERROR: message payload was empty and no type was specified')
+            print('here is the offending action')
+            print(json.dumps(action, indent=2))
             message['payload'] = {}
 
         # handle example
         if 'example' in action[key]:
-          jsonexample = action[key]['example'].replace('`', '')
-          # print(jsonexample)
-          exampleObject = json.loads(jsonexample)
+          example = action[key]['example']
+          if type(example) is dict:
+            exampleObject = example
+          elif type(example) is str:
+            jsonexample = action[key]['example'].replace('`', '')
+            try:
+              exampleObject = json.loads(jsonexample)
+            except:
+              exampleObject = LiteralString(jsonexample)
           message['examples'] = [{'payload': exampleObject}]
 
         # add to messages component
@@ -220,8 +272,8 @@ for channel in ['remote', 'stagedisplay']:
         # print(yaml.dump(message, sort_keys=False, indent=2, width=60, default_flow_style=False))
         # input('Hit enter to continue ... ')
 
-
-o = yaml.dump(output, sort_keys=False, indent=2, width=60, default_flow_style=False)
+print(f'WRITING: {target}')
+o = yaml.dump(output, sort_keys=False, indent=2, width=120, default_flow_style=False)
 with open(target, 'w') as of:
   of.write(o)
-print(o)
+print('DONE')
