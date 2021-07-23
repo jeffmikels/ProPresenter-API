@@ -1,31 +1,70 @@
 # This is a machine-readable format for the ProPresenter (6) Remote API
-# it was inspired by the asyncapi, but is more simplified for my use
+# it was inspired by the asyncapi, but is written to keep commands
+# and responses together
+#
+# The advantage of asyncapi is that it is a standardized specification
+# structure for APIs, but the disadvantage is that it has no real
+# notion of the request-response message paradigm that ProPresenter uses.
+# 
+# As a result, I have written this document by hand, and have written
+# my own translator to convert this document into asyncapi format
+# to use its tools for documentation generation
+asyncapi:
+  asyncapi: '2.1.0'
+  info:
+    title: ProPresenter API
+    version: '6'
+    description: |
+      Documenting RenewedVision's undocumented network protocols with examples
 
-application: ProPresenter 6
-description: |
-  Documenting RenewedVision's undocumented network protocols with examples
+      This document refers to ProPresenter 6.
 
-  This document refers to ProPresenter 6.
+      Both the Remote Control and the Stage Display protocols are unencrypted text-based websocket connections from the client to the ProPresenter instance.
 
-  Both the Remote Control and the Stage Display protocols are unencrypted text-based websocket connections from the client to the ProPresenter instance.
+      NOTE, if both the Remote Control and the Stage Display interface are enabled in ProPresenter, they both operate over the Remote Control network port.
 
-  Note, if both the Remote Control and the Stage Display interface are enabled in ProPresenter, they both operate over the Remote Control network port.
+      "Channels" refers to the communication channels opened up by ProPresenter.
+      Both versions 6 and 7 expose two channels. One is the "remote" channel, and the
+      other is the "stagedisplay" channel. They have two separate websocket endpoints
+      that take the following form:
 
-  "Channels" refers to the communication channels opened up by ProPresenter.
-  Both versions 6 and 7 expose two channels. One is the "remote" channel, and the
-  other is the "stagedisplay" channel. They have two separate websocket endpoints
-  that take the following form:
-
-  ```
-  ws://[hostname]:[port]/[channel]
-  ```
+      ```
+      ws://[hostname]:[port]/[channel]
+      ```
+  defaultContentType: application/json
+  servers:
+    pro6:
+      protocol: ws
+      url: "ws://{host}:{port}/{channel_name}"
+      description: |
+        Connecting to ProPresenter involves making a Websocket connection using
+        this address and then immediately following the connection with an
+        authentication message (as described below) for the relevant "channel."
+      variables:
+        host:
+          description: The hostname or ip address of the computer running ProPresenter 6
+        port:
+          description: The port specified in the ProPresenter Network settings
+        channel_name:
+          enum:
+            - remote
+            - stagedisplay
+          description: |
+            *remote* for the remote control channel,
+            or *stagedisplay* for the stage display channel
 
 channels:
   remote:
-    name: Remote Control
+    summary: Remote Control
     description: |
-      The Remote Control channel carries all the
+      The `remote` channel carries all the
       information from the "ProPresenter Remote" app
+
+      CONNECT WITH:
+      
+      ```
+      ws://[hostname]:[port]/remote
+      ```
     protocol: 600
     types:
       # built-in types bool, int, float, string, object, list
@@ -45,10 +84,18 @@ channels:
         example: |
           "125 125 125 1"
 
-      location:
+      itemLocation:
         type: string
         description: |
           A slash-escaped full pathname, file basename, or playlist location.
+
+          Pathname locations need to escape the slashes BEFORE they are encoded
+          to JSON.
+
+          ```
+          \/Path\/To\/ProPresenter\/Library\/Song 1 Title.pro6
+          ```
+
           Playlist locations are specified by a zero-based index of the playlist
           and playlist group in which the item may be found.
 
@@ -62,6 +109,7 @@ channels:
           `playlist_index[.child_playlist_index[.deeper_child_index[...]]]:item`
 
           NOTE: Pro6 supports full pathnames or basenames.
+        example: "\\/Path\\/To\\/ProPresenter\\/Library\\/Song 1 Title.pro6"
 
       # presentation types
       presentationSlide:
@@ -72,7 +120,7 @@ channels:
           slideNotes:
             type: string
           slideAttachmentMask:
-            type: integer
+            type: int
             description: unknown
           slideText:
             type: string
@@ -80,9 +128,7 @@ channels:
             type: string
             description: base64 encoded jpeg image
           slideIndex:
-            type:
-              - string
-              - int
+            type: int
             description: |
               it is the zero-based index of the slide in a presentation
 
@@ -98,7 +144,7 @@ channels:
       presentationSlideGroup:
         type: object
         parameters:
-          groupName:
+          groupsummary:
             type: string
           groupColor:
             type: color
@@ -109,12 +155,12 @@ channels:
         parameters:
           presentationSlideGroups:
             type: list[presentationSlideGroup]
-          presentationName:
+          presentationsummary:
             type: string
           presentationHasTimeline:
             type: boolint
           presentationCurrentLocation:
-            type: location
+            type: itemLocation
             description: |
               This field contains the location of the *currently active* presentation if there is one.
               
@@ -128,7 +174,7 @@ channels:
           slideIndex:
             type: int
           presentationPath:
-            type: location
+            type: itemLocation
             description: |
               If the current presentation was selected from a playlist, it will report the
               playlist location (i.e. `0:0`), but if it was selected from the Library directly,
@@ -146,8 +192,8 @@ channels:
               - playlistItemTypeAudio
               - playlistItemTypePresentation
           playlistItemLocation:
-            type: location
-          playlistItemName:
+            type: itemLocation
+          playlistItemsummary:
             type: string
           playlistItemArtist:
             type: string
@@ -156,9 +202,9 @@ channels:
         type: object
         parameters:
           playlistLocation:
-            type: location
+            type: itemLocation
           playlistType: playlistTypePlaylist
-          playlistName:
+          playlistsummary:
             type: string
           playlist:
             type: list[playlistItemType]
@@ -166,17 +212,17 @@ channels:
         type: object
         parameters:
           playlistType: playlistTypeGroup
-          playlistName:
+          playlistsummary:
             type: string
           playlistLocation:
-            type: location
+            type: itemLocation
           playlist:
             type: list[playlistUnionType]
       playlistUnionType:
-        type: union
-        types:
+        type:
           - playlistTypeGroup
           - playlistTypePlaylist
+
 
       # audio types  
       audioPlayPause:
@@ -200,7 +246,8 @@ channels:
           - 0
           - 1
           - 2
-        description: 0 is Countdown, 1 is Countdown to Time, 2 is Elapsed Time
+        description: |
+          `0` is Countdown, `1` is Countdown to Time, `2` is Elapsed Time
 
       # in the response from clockRequest
       clockDetail:
@@ -210,8 +257,8 @@ channels:
             type: clockType
           clockState:
             type: bool
-            description: running is true, not running is false
-          clockName:
+            description: running is `true`, not running is `false`
+          clocksummary:
             type: string
           clockIsPM:
             type: boolint
@@ -297,7 +344,7 @@ channels:
     # actions refer to commands that can be sent to ProPresenter
     actions:
       authenticate:
-        name: Authentication
+        summary: RemoteAuthentication
         description: |
           This is the first command ProPresenter expects to receive over the websocket.
           This command requests authentication.
@@ -308,7 +355,7 @@ channels:
             action: authenticate
             protocol: 600
             password:
-              type: int
+              type: string
               description: as defined in the ProPresenter network settings
         response:
           payload:
@@ -328,7 +375,7 @@ channels:
             ```
 
       libraryRequest:
-        name: Get Library (all presentations)
+        summary: Get Library (all presentations)
         description: |
           Will return all items in the ProPresenter library.
 
@@ -340,7 +387,7 @@ channels:
           payload:
             action: libraryRequest
             library:
-              type: list[location]
+              type: list[itemLocation]
               description: |
                 This will be a list of full pathnames for all items in the Presentation library.
 
@@ -360,7 +407,7 @@ channels:
             ```
         
       playlistRequestAll:
-        name: Get Playlists
+        summary: Get Playlists
         description: |
           Will return all presentation playlists.
 
@@ -389,7 +436,7 @@ channels:
                       "playlistItemName": "!~ PRE-SERVICE",
                       "playlistItemLocation": "0:0",
                       "playlistItemType": "playlistItemTypePresentation"
-                    },
+                    }
                   ]
                 },
                 {
@@ -411,9 +458,9 @@ channels:
                           "playlistItemName": "!MISC1",
                           "playlistItemLocation": "1.0:1",
                           "playlistItemType": "playlistItemTypePresentation"
-                        },
+                        }
                       ]
-                    },
+                    }
                   ]
                 }
               ],
@@ -421,7 +468,7 @@ channels:
             }
             ```
       presentationRequest:
-        name: Request a Playlist by Location
+        summary: Request a Playlist by Location
         description: |
           `presentationSlideQuality` is optional. It refers to the pixel width of the
           slide previews sent from ProPresenter. If left blank, 100 pixel wide
@@ -434,7 +481,8 @@ channels:
         message:
           payload:
             action: presentationRequest
-            presentationPath: location
+            presentationPath:
+              type: itemLocation
             presentationSlideQuality:
               type: int
               optional: true
@@ -442,7 +490,7 @@ channels:
             ```
             {
               "action": "presentationRequest",
-              "presentationPath": "\/Path\/To\/ProPresenter\/Library\/Song 1 Title.pro6",
+              "presentationPath": "\\/Path\\/To\\/ProPresenter\\/Library\\/Song 1 Title.pro6",
               "presentationSlideQuality": 25
             }
             ```
@@ -459,7 +507,7 @@ channels:
                   "presentationSlideGroups": [
                       {
                           "groupName": "[SLIDE GROUP NAME]",
-                          "groupColor": "0 0 0 1", // RGBA scale is from 0-1
+                          "groupColor": "0 0 0 1",
                           "groupSlides": [
                               {
                                   "slideEnabled": true,
@@ -473,7 +521,7 @@ channels:
                                   "slideColor": "0 0 0 1"
                               }
                           ]
-                      },
+                      }
                   ],
                   "presentationName": "[PRESENTATION TITLE]",
                   "presentationHasTimeline": 0,
@@ -483,7 +531,7 @@ channels:
             ```
 
       presentationCurrent:
-        name: Request Current Presentation
+        summary: Request Current Presentation
         description: |
           Requests the currently active presentation if there is one. If no presentation has a slide
           active, then nothing will be returned.
@@ -500,12 +548,12 @@ channels:
           payload:
             action: presentationCurrent
             presentationPath:
-              type: location
+              type: itemLocation
             presentation:
               type: presentation
 
       presentationSlideIndex:
-        name: Get the Index of the Current Slide
+        summary: Get the Index of the Current Slide
         description: |
           - Slides are indexed from 0
           - This response always sends the slideIndex as a `string` value
@@ -521,7 +569,7 @@ channels:
               example: "0"
 
       presentationTriggerIndex:
-        name: Activate a Slide
+        summary: Activate a Slide
         description: Works just like clicking on a slide
         message:
           payload:
@@ -529,14 +577,14 @@ channels:
             slideIndex:
               type: int
             presentationPath:
-              type: location
+              type: itemLocation
               example: "0:0"
         response:
           pushy: true
           type: presentationTriggerMessage
 
       presentationTriggerNext:
-        name: Activate the Next Slide
+        summary: Activate the Next Slide
         description: Works just like hitting the right arrow or spacebar.
         message:
           payload:
@@ -545,7 +593,7 @@ channels:
           type: presentationTriggerMessage
 
       presentationTriggerPrevious:
-        name: Activate the Previous Slide
+        summary: Activate the Previous Slide
         description: Works just like hitting the left arrow.
         message:
           payload:
@@ -555,7 +603,7 @@ channels:
 
       # audio commands
       audioRequest:
-        name: Get Audio Library
+        summary: Get Audio Library
         description: Will return all the items in the audio library
         message:
           payload:
@@ -567,7 +615,7 @@ channels:
               type: list[playlistUnionType]
 
       audioCurrentSong:
-        name: Get the Current Song
+        summary: Get the Current Song
         description: Will return the data for the currently playing song, if there is one.
         message:
           payload:
@@ -577,7 +625,7 @@ channels:
             action: audioCurrentSong
             audioArtist:
               type: string
-            audioName:
+            audiosummary:
               type: string
           example: |
             ```
@@ -589,7 +637,7 @@ channels:
             ```
 
       audioIsPlaying:
-        name: Is Audio Playing (BROKEN)
+        summary: Is Audio Playing (BROKEN)
         description: This api request exists, but it always reports `false`
         message:
           payload:
@@ -600,7 +648,7 @@ channels:
             audioIsPlaying: false
 
       audioStartCue:
-        name: Start Audio Cue
+        summary: Start Audio Cue
         description: |
           This command will result in an `audioTriggered` message, but since the
           play/pause status has change, ProPresenter will also send an `audioPlayPause` message.
@@ -608,14 +656,14 @@ channels:
           payload:
             action: audioStartCue
             audioChildPath:
-              type: location
+              type: itemLocation
         response:
           pushy: true
           payload:
             action: audioTriggered
             audioArtist:
               type: string
-            audioName: 
+            audiosummary: 
               type: string
           example: |
             ```
@@ -627,7 +675,7 @@ channels:
             ```
 
       audioPlayPause:
-        name: Toggle the Audio Play State
+        summary: Toggle the Audio Play State
         description:
         message:
           payload:
@@ -643,28 +691,28 @@ channels:
 
       # timeline commands
       timelinePlayPause:
-        name: Toggle the Timeline Play State
+        summary: Toggle the Timeline Play State
         description: If `presentationPath` is missing, Pro6 will crash.
         message:
           payload:
             action: timelinePlayPause
             presentationPath:
-              type: location
+              type: itemLocation
         response: none
 
       timelineRewind:
-        name: Reset the Timeline for a Presentation
+        summary: Reset the Timeline for a Presentation
         description: If `presentationPath` is missing, Pro6 will crash.
         message:
           payload:
             action: timelineRewind
             presentationPath:
-              type: location
+              type: itemLocation
         response: none
 
       # clock / timer commands
       clockRequest:
-        name: Request all Clock data
+        summary: Request all Clock data
         description:
         message:
           payload:
@@ -676,7 +724,7 @@ channels:
               type: list[clockDetail]
 
       clockCurrentTimes:
-        name: Get Current Times for All Clocks
+        summary: Get Current Times for All Clocks
         description:
         message:
           payload:
@@ -685,7 +733,7 @@ channels:
           type: clockCurrentTimesMessage
 
       clockStartSendingCurrentTime:
-        name: Subscribe to Clock Updates
+        summary: Subscribe to Clock Updates
         description: |
           ProPresenter will send one clock update every second even if no clock values have changed.
 
@@ -697,7 +745,7 @@ channels:
           type: clockCurrentTimesMessage
 
       clockStopSendingCurrentTime:
-        name: Unsubscribe from Clock Updates
+        summary: Unsubscribe from Clock Updates
         description:
         message:
           payload:
@@ -705,7 +753,7 @@ channels:
         response: none
 
       clockStart:
-        name: Start a Specific Clock
+        summary: Start a Specific Clock
         description:
         message:
           payload:
@@ -716,7 +764,7 @@ channels:
           type: clockStartStopMessage
 
       clockStop:
-        name: Stop a Specific Clock
+        summary: Stop a Specific Clock
         description:
         message:
           payload:
@@ -727,7 +775,7 @@ channels:
           type: clockStartStopMessage
 
       clockReset:
-        name: Reset a clock back to initial settings
+        summary: Reset a clock back to initial settings
         description:
         message:
           payload:
@@ -739,7 +787,7 @@ channels:
             action: clockResetIndex
 
       clockUpdate:
-        name: Update a Clock (Timer) (eg edit time)
+        summary: Update a Clock (Timer) (eg edit time)
         description: |-
           * Clocks are referenced by index. See reply from "clockRequest" action above to learn indexes.
           * Not all parameters are required for each clock type.
@@ -768,7 +816,7 @@ channels:
             clockIsPM:
               type: int
               example: 1
-            clockName:
+            clocksummary:
               type: string
               example: Countdown 2
             clockElapsedTime:
@@ -814,7 +862,7 @@ channels:
 
 
       messageRequest:
-        name: Get all Messages
+        summary: Get all Messages
         description: |-
           * The key is everything inside the curly braces `${}` so that the key for a countdown looks like this `Countdown 1: H:MM:SS`.
           * If the key refers to a countdown, the value is used to update the `duration` field of the countdown timer, but will not perform a "reset".
@@ -830,7 +878,7 @@ channels:
           payload:
             action: messageRequest
             messages:
-              type: list[stageDisplayMessage]
+              type: list[screenMessage]
           example: |-
             ```
             {
@@ -868,7 +916,7 @@ channels:
             ```
 
       messageSend:
-        name: Display a Message
+        summary: Display a Message
         description: |
           Display a message identified by its index. Add as many key, value
           pairs as you like.
@@ -889,7 +937,7 @@ channels:
           ```
 
       messageHide:
-        name: Hide a Message
+        summary: Hide a Message
         description: Hide a message identified by its index
         message:
           payload:
@@ -899,7 +947,7 @@ channels:
 
       # stage display control messages
       stageDisplaySendMessage:
-        name: Show Stage Display Message
+        summary: Show Stage Display Message
         description: 
         message:
           payload:
@@ -914,7 +962,7 @@ channels:
         response: none
 
       stageDisplayHideMessage:
-        name: Hide Stage Display Message
+        summary: Hide Stage Display Message
         description: 
         message:
           payload:
@@ -926,27 +974,32 @@ channels:
         response: none
 
       stageDisplaySetIndex:
-        name: Select Stage Display Layout
+        summary: Select Stage Display Layout
         description: |
           EXPECTED RESPONSE IS THE SAME AS THE SENT COMMAND
         message:
           payload:
             action: stageDisplaySetIndex
             stageDisplayIndex:
-              type: string
-              example: '[STAGE DISPLAY INDEX]'
+              type: int
+              example: 0
           example: |-
             ```
-            {"action":"stageDisplaySetIndex","stageDisplayIndex":"[STAGE DISPLAY INDEX]"}
+            {"action":"stageDisplaySetIndex","stageDisplayIndex":0}
             ```
         response:
+          payload:
+            action: stageDisplaySetIndex
+            stageDisplayIndex:
+              type: int
+              example: 0
           example: |-
             ```
-            {"action":"stageDisplaySetIndex","stageDisplayIndex":"[STAGE DISPLAY INDEX]"}
+            {"action":"stageDisplaySetIndex","stageDisplayIndex":0}
             ```
 
       stageDisplaySets:
-        name: Get Stage Display Layouts
+        summary: Get Stage Display Layouts
         description: 
         message:
           payload:
@@ -981,7 +1034,7 @@ channels:
       
       # general control messages
       clearAll:
-        name: Clear All
+        summary: Clear All
         description: ''
         message:
           payload:
@@ -992,7 +1045,7 @@ channels:
             ```
 
       clearText:
-        name: Clear Slide
+        summary: Clear Slide
         description: ''
         message:
           payload:
@@ -1003,7 +1056,7 @@ channels:
             ```
 
       clearProps:
-        name: Clear Props
+        summary: Clear Props
         description: ''
         message:
           payload:
@@ -1014,7 +1067,7 @@ channels:
             ```
 
       clearAudio:
-        name: Clear Audio
+        summary: Clear Audio
         description: ''
         message:
           payload:
@@ -1025,7 +1078,7 @@ channels:
             ```
 
       clearVideo:
-        name: Clear Video
+        summary: Clear Video
         description: ''
         message:
           payload:
@@ -1036,7 +1089,7 @@ channels:
             ```
 
       clearTelestrator:
-        name: Clear Telestrator
+        summary: Clear Telestrator
         description: ''
         message:
           payload:
@@ -1047,7 +1100,7 @@ channels:
             ```
 
       clearToLogo:
-        name: Clear To Logo
+        summary: Clear To Logo
         description: ''
         message:
           payload:
@@ -1066,9 +1119,18 @@ channels:
       - telestratorNew
 
   stagedisplay:
-    name: Stage Display API
+    summary: Stage Display API
     protocol: 610
     description: |
+      The `stagedisplay` channel carries all the
+      information from the "ProPresenter Stage" app
+
+      CONNECT WITH:
+      
+      ```
+      ws://[hostname]:[port]/stagedisplay
+      ```
+
       ProPresenter also provides a mechanism for getting a high quality thumbnail image
       for any slide or chord chart in the current presentation:
       
@@ -1093,8 +1155,8 @@ channels:
       stageDisplayColor:
         type: string
         description: |
-          Stage Display colors are strings of three space-delimited float values for RGB
-        example: 1.000000 1.000000 1.000000
+          Stage Display colors are strings of three or four space-delimited float values for RGB(A) from 0-1
+        example: 1.000000 1.000000 1.000000 1.000000
 
       stageDisplayFrame:
         description:
@@ -1255,16 +1317,17 @@ channels:
     # commands to send
     actions:
       ath:
-        name: Authenticate
+        summary: StageDisplayAuthentication
         description: ''
         message:
-          acn: ath
-          ptl: 610
-          pwd:
-            type: string
+          payload:
+            acn: ath
+            ptl: 610
+            pwd:
+              type: string
           example: |
             ```
-            {"pwd":PASSWORD,"ptl":610,"acn":"ath"}
+            {"pwd":"PASSWORD","ptl":610,"acn":"ath"}
             ```
         response:
           payload:
@@ -1279,7 +1342,7 @@ channels:
             ```
         
       asl:
-        name: Get All Stage Display Layouts
+        summary: Get All Stage Display Layouts
         description: |-
           * `acn` of `asl` means "all stage layouts"
           * `ary` indicates array of stage layouts
@@ -1325,7 +1388,7 @@ channels:
             ```
 
       psl:
-        name: Request Current Stage Display Layout
+        summary: Request Current Stage Display Layout
         description: ''
         message:
           payload:
@@ -1345,7 +1408,7 @@ channels:
             ```
 
       fv:
-        name: Request Frame Values for Stage Display
+        summary: Request Frame Values for Stage Display
         description: |
           When the frame value is pushed as a result of a slide trigger event,
           only `cs`, `ns`, `csn`, `nsn` will be sent.
@@ -1416,14 +1479,14 @@ channels:
 
       # push only messages
       sl:
-        name: On New Stage Display Selected
+        summary: On New Stage Display Selected
         description: |-
           * `acn` of `sl` indicates this is a single stage layout
         response:
           type: stageDisplayLayout
 
       sys:
-        name: On New System Time
+        summary: On New System Time
         description: ''
         response:
           pushy: true
@@ -1438,7 +1501,7 @@ channels:
             ```
 
       vid:
-        name: On New Video Countdown Time
+        summary: On New Video Countdown Time
         description: Time follows the same H:MM:SS format as the remote protocol.
         response:
           pushy: true
@@ -1452,7 +1515,7 @@ channels:
             {"acn":"vid","txt":"0:00:18"}
             ```
       cc:
-        name: On New Chord Chart
+        summary: On New Chord Chart
         description: |
           Chord chart images can be downloaded in the same way as slide preview images
 
@@ -1464,11 +1527,11 @@ channels:
             uid:
               type: string
               example: E65DF4DF-960D-4CF5-ADF5-60F200F6AFF7
-            example: |
-              ```{"acn":"cc","uid":"E65DF4DF-960D-4CF5-ADF5-60F200F6AFF7"}```
+          example: |
+            ```{"acn":"cc","uid":"E65DF4DF-960D-4CF5-ADF5-60F200F6AFF7"}```
 
       tmr:
-        name: On Timer Update
+        summary: On Timer Update
         description: ''
         response:
           pushy: true
@@ -1480,11 +1543,11 @@ channels:
             txt:
               type: string
               description: timer text
-            example: |
-              ```
-              {
-                acn: 'tmr',
-                uid: '[TIMER UID]',
-                txt: '--:--:--'
-              }
-              ```
+          example: |
+            ```
+            {
+              "acn": "tmr",
+              "uid": "[TIMER UID]",
+              "txt": "--:--:--"
+            }
+            ```

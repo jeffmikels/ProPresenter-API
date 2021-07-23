@@ -1,0 +1,227 @@
+#!/usr/bin/env python3
+
+import sys
+import json
+from typing import Literal
+import yaml
+from yaml.representer import SafeRepresenter
+
+# for dumping literal strings as Markdown blocks
+
+
+class LiteralString(str):
+  pass
+
+
+def literal_presenter(dumper, data):
+  if type(data) is tuple:
+    data = ''.join(data)
+  return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
+
+
+yaml.add_representer(LiteralString, literal_presenter)
+
+
+def type_to_schema(t):
+  schema = {}
+  description = t.get('description', '')
+
+  if description != '':
+    schema['description'] = LiteralString(description)
+
+  # type
+  typetype = t['type']
+
+  # if we are given a list of types, handle first
+  if type(typetype) is list:
+    oneof = []
+    for typeitem in typetype:
+      if typeitem in refs:
+        oneof.append({'$ref': refs[typeitem]})
+      else:
+        oneof.append({'type': typeitem})
+    schema['oneOf'] = oneof
+  elif typetype == 'int':
+    schema['type'] = 'integer'
+  elif typetype == 'bool':
+    schema['type'] = 'boolean'
+  elif typetype == 'object':
+    schema['type'] = 'object'
+  elif typetype == 'list':
+    schema['type'] = 'array'
+  elif 'list[' in typetype:
+    schema['type'] = 'array'
+    subtype = typetype.replace('list[', '')[:-1]
+    if subtype in refs:
+      schema['items'] = [{'$ref': refs[subtype]}]
+    else:
+      schema['items'] = [{'type': subtype}]
+  elif typetype in refs:
+    schema['$ref'] = refs[typetype]
+  else:
+    schema['type'] = typetype
+
+  # parameters if there are some
+  params = t.get('parameters', None)
+  if params is not None:
+    schema['properties'] = {}
+    for paramname in params:
+      p = params[paramname]
+      if type(p) is dict:
+        pschema = type_to_schema(p)
+      elif type(p) is list:
+        oneof = []
+        for typeitem in p:
+          if typeitem in refs:
+            oneof.append({'$ref': refs[typeitem]})
+          else:
+            oneof.append({'type': typeitem})
+        pschema = {'oneOf': oneof}
+
+      else:
+        pschema = {'const': p}
+
+      schema['properties'][paramname] = pschema
+      schema['additionalProperties'] = False
+
+  # check for 'options'
+  options = t.get('options', None)
+  if options is not None:
+    schema['enum'] = options
+
+  # example
+  example = t.get('example', '')
+  if example != '':
+    schema['examples'] = [LiteralString(example)]
+
+  return schema
+
+
+# =============================
+# BEGIN MAIN
+# =============================
+if len(sys.argv) == 1:
+  print(f'''
+USAGE:
+
+{sys.argv[0]} yaml_file output_name
+
+Will parse my simple API yaml file to AsyncAPI.
+  ''')
+  exit()
+
+source = sys.argv[1]
+target = source + '-asyncapi.yaml'
+target = target.replace('.yaml-asyncapi.yaml', '-asyncapi.yaml')
+target = target.replace('.yml-asyncapi.yaml', '-asyncapi.yaml')
+
+if len(sys.argv) == 3:
+  target = sys.argv[2]
+
+# read input yaml file
+with open(source, 'r') as f:
+  t = f.read()
+  data = yaml.load(t, Loader=yaml.CLoader)
+
+# include root level asyncapi data
+output = data['asyncapi']
+output.update({'channels': {}, 'components': {'schemas': {}, 'messages': {}}})
+
+refs = {}
+
+# create schemas from the types in two passes.
+# pass 1 creates the type refs
+for channel in ['remote', 'stagedisplay']:
+  for typename in data['channels'][channel]['types']:
+    if typename not in refs:
+      refs[typename] = f'#/components/schemas/{typename}'
+
+# pass 2 actually creates the types
+for channel in ['remote', 'stagedisplay']:
+  for typename in data['channels'][channel]['types']:
+    t = data['channels'][channel]['types'][typename]
+    # print(t)
+    schema = type_to_schema(t)
+    output['components']['schemas'][typename] = schema
+
+# create pub/sub messages from the message / response payloads
+for channel in ['remote', 'stagedisplay']:
+  channelPath = '/'+channel
+  output['channels'][channelPath] = {
+      'publish': {
+          'description': 'Send messages to the API',
+          'message': {
+              'oneOf': []
+          }
+      },
+      'subscribe': {
+          'description': 'Receive messages from the API',
+          'message': {
+              'oneOf': []
+          }
+      },
+  }
+
+  for actionName in data['channels'][channel]['actions']:
+    action = data['channels'][channel]['actions'][actionName]
+    # print(action)
+    pubName = f'{actionName}_SEND'
+    subName = f'{actionName}_RECEIVE'
+    pubSubNames = {'publish': pubName, 'subscribe': subName}
+
+    for pubsub in ['publish', 'subscribe']:
+      messageName = pubSubNames[pubsub]
+      message = {}
+      message['name'] = actionName
+
+      if 'summary' in action:
+        message['summary'] = action['summary']
+
+      if 'description' in action:
+        desc = action['description']
+        message['description'] = LiteralString(desc)
+
+      key = 'response'
+      if pubsub == 'publish':
+        key = 'message'
+      if key in action and action[key] != 'none':
+        refstring = f'#/components/messages/{messageName}'
+        refs[messageName] = refstring
+
+        # handle payload ... could be a 'type' or a 'payload'
+        payload = action[key].get('payload', None)
+        if payload is not None:
+          forschema = {'type': 'object', 'parameters': payload}
+          message['payload'] = type_to_schema(forschema)
+        else:
+          payloadtype = action[key].get('type', None)
+          if payloadtype in refs:
+            message['payload'] = {'$ref': refs[payloadtype]}
+          else:
+            message['payload'] = {}
+
+        # handle example
+        if 'example' in action[key]:
+          jsonexample = action[key]['example'].replace('`', '')
+          # print(jsonexample)
+          exampleObject = json.loads(jsonexample)
+          message['examples'] = [{'payload': exampleObject}]
+
+        # add to messages component
+        output['components']['messages'][messageName] = message
+
+        # add ref to the channel/pubsub/messages
+        output['channels'][channelPath][pubsub]['message']['oneOf'].append(
+            {'$ref': refstring, }
+        )
+
+        # print('== DEBUG ==')
+        # print(json.dumps(action, indent=2))
+        # print(yaml.dump(message, sort_keys=False, indent=2, width=60, default_flow_style=False))
+        # input('Hit enter to continue ... ')
+
+
+o = yaml.dump(output, sort_keys=False, indent=2, width=60, default_flow_style=False)
+with open(target, 'w') as of:
+  of.write(o)
+print(o)

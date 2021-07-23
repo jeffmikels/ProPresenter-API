@@ -14,18 +14,20 @@ def e(s='', end='\n'):
 def format_type(ttype):
   if ttype not in ['bool', 'int', 'float', 'string', 'object', 'list']:
     if type(ttype) is list:
-      retval = ''
+      retval = []
       for t in ttype:
-        retval += format_type(t)
-      return retval
+        retval.append(format_type(t))
+      return '|'.join(retval)
 
     if ttype in types:
       link_to = ttype.lower()
-      ttype = f'[{ttype}](#{link_to})'
+      ttype = f'[`{ttype}`](#{link_to})'
     if 'list[' in ttype:
       inner_type = ttype.replace('list[', '')[:-1]
       link_to = inner_type.lower()
-      ttype = f'list[[{inner_type}](#{link_to})]'
+      ttype = f'list[[`{inner_type}`](#{link_to})]'
+  else:
+    ttype = f'`{ttype}`'
   return ttype
 
 
@@ -83,7 +85,7 @@ for channelkey in data['channels']:
     texample = t.get('example', '').strip()
     formatted_type = format_type(ttype)
 
-    e(f'\n#### {tname}')
+    e(f'\n#### <a name="{tname.lower()}">{tname}</a>')
     e(f'Base Type: {formatted_type}')
     e()
 
@@ -93,7 +95,7 @@ for channelkey in data['channels']:
 
     if ttype == 'object':
       # print(t)
-      e('##### PARAMETERS:')
+      e('##### PARAMETERS:\n')
 
       for paramname in t['parameters']:
         param = t['parameters'][paramname]
@@ -117,29 +119,37 @@ for channelkey in data['channels']:
           poptions = param.get('options', None)
           pexample = param.get('example', '')
 
+        if ptype == 'union':
+          ptype = param.get('types', 'union')
+
         pformatted_type = format_type(ptype)
-        e(f'- **{paramname}** (*{pformatted_type}*)')
+        e(f'- **{paramname}** ({pformatted_type})')
+        extras = []
         if (poptions is not None):
-          e(f'    Must be one of these: {poptions}')
+          poptions = [f'`{x}`' for x in poptions]
+          extras.append(f'    Must be one of these: {poptions}')
         if (pdesc != ''):
           # need to indent every description line
           for line in pdesc.split('\n'):
-            e(f'    {line}')
+            extras.append(f'    {line}')
         if (pexample != ''):
           if ptype == 'string':
             pexample = f'"{pexample}"'
           if '`' not in pexample:
             pexample = f'```{pexample}```'
-          e(f'    {pexample}')
-
+          extras.append(f'    {pexample}')
+        if len(extras) > 0:
+          e()
+          e('\n'.join(extras))
     e()
     if texample != '':
       if '`' not in texample:
         texample = f'```{texample}```'
 
-      e(f'\n##### EXAMPLE:')
+      e(f'\n##### EXAMPLE:\n')
       e(texample)
-    e()
+      e()
+    e('********************************\n')
 
   # output the list of pushy messages (with anchor links)
   # output the action messages with their responses
