@@ -902,178 +902,6 @@ components:
           majorVersion: 7
           minorVersion: 6
           action: authenticate
-    macrosTrigger__pub:
-      name: macrosTrigger__pub
-      title: macrosTrigger (publish)
-      summary: Trigger a Macro
-      description: |-
-        Trigger a macro using `macroName`, `macroID`, or `macroIndex`, must have at least one.
-
-        If you send multiple identifier parameters, they are handled in the following order of precedence:
-
-        1. macroID
-        2. macroName
-        3. macroIndex
-
-        NO RESPONSE
-      payload:
-        type: object
-        properties:
-          action:
-            const: macrosTrigger
-          macroName:
-            description: |-
-              case-sensitive name of macro to trigger
-            type: string
-          macroID:
-            description: |-
-              internal ID of macro to trigger
-            type: string
-          macroIndex:
-            description: |-
-              zero-based index of macro to trigger
-            type: integer
-        required:
-        - action
-        additionalProperties: false
-    macrosRequest__pub:
-      name: macrosRequest__pub
-      title: macrosRequest (publish)
-      summary: Request a list of Pro7 Macros
-      description: |2
-
-
-        **RELATED RESPONSE**: [macrosRequest (subscribe)](#message-macrosRequest__sub)
-      payload:
-        type: object
-        properties:
-          action:
-            const: macrosRequest
-        required:
-        - action
-        additionalProperties: false
-    macrosRequest__sub:
-      name: macrosRequest__sub
-      title: macrosRequest (subscribe)
-      summary: Request a list of Pro7 Macros
-      description: |2
-
-
-        **RELATED COMMAND**: [macrosRequest (publish)](#message-macrosRequest__pub)
-      payload:
-        type: object
-        properties:
-          action:
-            const: macrosRequest
-          macros:
-            type: array
-            items:
-            - $ref: '#/components/schemas/pro7Macro'
-        required:
-        - action
-        - macros
-        additionalProperties: false
-      examples:
-      - payload:
-          action: macrosRequest
-          macros:
-          - macroName: <Case-sensitive name of Macro>
-            macroID: <Internal ID of Macro>
-            macroColor: <red> <green> <blue>
-            macroIndex: <Zero-based index of Macro>
-    looksTrigger__pub:
-      name: looksTrigger__pub
-      title: looksTrigger (publish)
-      summary: Trigger a Look
-      description: |-
-        Trigger a look. Similar to triggering a Macro.
-
-        If you send multiple identifier parameters, they are handled in the following order of precedence:
-
-        1. lookID
-        2. lookName
-        3. lookIndex
-
-        NO RESPONSE
-      payload:
-        type: object
-        properties:
-          action:
-            const: looksTrigger
-          macroName:
-            description: |-
-              case-sensitive name of look to trigger
-            type: string
-          macroID:
-            description: |-
-              internal ID of look to trigger
-            type: string
-          macroIndex:
-            description: |-
-              zero-based index of look to trigger
-            type: integer
-        required:
-        - action
-        additionalProperties: false
-    looksRequest__pub:
-      name: looksRequest__pub
-      title: looksRequest (publish)
-      summary: Request a list of Pro7 Looks
-      description: |
-        Includes the currently active Look (activeLook)
-
-        **RELATED RESPONSE**: [looksRequest (subscribe)](#message-looksRequest__sub)
-      payload:
-        type: object
-        properties:
-          action:
-            const: looksRequest
-        required:
-        - action
-        additionalProperties: false
-    looksRequest__sub:
-      name: looksRequest__sub
-      title: looksRequest (subscribe)
-      summary: Request a list of Pro7 Looks
-      description: |
-        Includes the currently active Look (activeLook)
-
-        **RELATED COMMAND**: [looksRequest (publish)](#message-looksRequest__pub)
-      payload:
-        type: object
-        properties:
-          action:
-            const: looksRequest
-          looks:
-            type: array
-            items:
-            - $ref: '#/components/schemas/pro7Look'
-          activeLook:
-            type: object
-            properties:
-              lookName:
-                type: string
-              lookID:
-                type: string
-            required:
-            - lookName
-            - lookID
-            additionalProperties: false
-        required:
-        - action
-        - looks
-        - activeLook
-        additionalProperties: false
-      examples:
-      - payload:
-          action: looksRequest
-          looks:
-          - lookName: <Case-sensitive name of Look>
-            lookID: <Internal ID of Look>
-            lookIndex: <Zero-based index of Look>
-          activeLook:
-            lookName: <name>
-            lookID: <identifier>
     libraryRequest__pub:
       name: libraryRequest__pub
       title: libraryRequest (publish)
@@ -2365,6 +2193,178 @@ components:
         **RELATED COMMAND**: [stageDisplayChangeLayout (publish)](#message-stageDisplayChangeLayout__pub)
       payload:
         $ref: '#/components/schemas/stageDisplaySetsMessage'
+    macrosTrigger__pub:
+      name: macrosTrigger__pub
+      title: macrosTrigger (publish)
+      summary: Trigger a Macro
+      description: |-
+        Trigger a macro using `macroName`, `macroID`, or `macroIndex`, must have at least one.
+
+        If you send multiple identifier parameters, they are handled in the following order of precedence:
+
+        1. macroID
+        2. macroName
+        3. macroIndex
+
+        NO RESPONSE
+      payload:
+        type: object
+        properties:
+          action:
+            const: macrosTrigger
+          macroName:
+            description: |-
+              case-sensitive name of macro to trigger
+            type: string
+          macroID:
+            description: |-
+              internal ID of macro to trigger
+            type: string
+          macroIndex:
+            description: |-
+              zero-based index of macro to trigger
+            type: integer
+        required:
+        - action
+        additionalProperties: false
+    macrosRequest__pub:
+      name: macrosRequest__pub
+      title: macrosRequest (publish)
+      summary: Request a list of Pro7 Macros
+      description: |2
+
+
+        **RELATED RESPONSE**: [macrosRequest (subscribe)](#message-macrosRequest__sub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: macrosRequest
+        required:
+        - action
+        additionalProperties: false
+    macrosRequest__sub:
+      name: macrosRequest__sub
+      title: macrosRequest (subscribe)
+      summary: Request a list of Pro7 Macros
+      description: |2
+
+
+        **RELATED COMMAND**: [macrosRequest (publish)](#message-macrosRequest__pub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: macrosRequest
+          macros:
+            type: array
+            items:
+            - $ref: '#/components/schemas/pro7Macro'
+        required:
+        - action
+        - macros
+        additionalProperties: false
+      examples:
+      - payload:
+          action: macrosRequest
+          macros:
+          - macroName: <Case-sensitive name of Macro>
+            macroID: <Internal ID of Macro>
+            macroColor: <red> <green> <blue>
+            macroIndex: <Zero-based index of Macro>
+    looksTrigger__pub:
+      name: looksTrigger__pub
+      title: looksTrigger (publish)
+      summary: Trigger a Look
+      description: |-
+        Trigger a look. Similar to triggering a Macro.
+
+        If you send multiple identifier parameters, they are handled in the following order of precedence:
+
+        1. lookID
+        2. lookName
+        3. lookIndex
+
+        NO RESPONSE
+      payload:
+        type: object
+        properties:
+          action:
+            const: looksTrigger
+          macroName:
+            description: |-
+              case-sensitive name of look to trigger
+            type: string
+          macroID:
+            description: |-
+              internal ID of look to trigger
+            type: string
+          macroIndex:
+            description: |-
+              zero-based index of look to trigger
+            type: integer
+        required:
+        - action
+        additionalProperties: false
+    looksRequest__pub:
+      name: looksRequest__pub
+      title: looksRequest (publish)
+      summary: Request a list of Pro7 Looks
+      description: |
+        Includes the currently active Look (activeLook)
+
+        **RELATED RESPONSE**: [looksRequest (subscribe)](#message-looksRequest__sub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: looksRequest
+        required:
+        - action
+        additionalProperties: false
+    looksRequest__sub:
+      name: looksRequest__sub
+      title: looksRequest (subscribe)
+      summary: Request a list of Pro7 Looks
+      description: |
+        Includes the currently active Look (activeLook)
+
+        **RELATED COMMAND**: [looksRequest (publish)](#message-looksRequest__pub)
+      payload:
+        type: object
+        properties:
+          action:
+            const: looksRequest
+          looks:
+            type: array
+            items:
+            - $ref: '#/components/schemas/pro7Look'
+          activeLook:
+            type: object
+            properties:
+              lookName:
+                type: string
+              lookID:
+                type: string
+            required:
+            - lookName
+            - lookID
+            additionalProperties: false
+        required:
+        - action
+        - looks
+        - activeLook
+        additionalProperties: false
+      examples:
+      - payload:
+          action: looksRequest
+          looks:
+          - lookName: <Case-sensitive name of Look>
+            lookID: <Internal ID of Look>
+            lookIndex: <Zero-based index of Look>
+          activeLook:
+            lookName: <name>
+            lookID: <identifier>
     clearAll__pub:
       name: clearAll__pub
       title: clearAll (publish)
@@ -2866,10 +2866,6 @@ channels:
       message:
         oneOf:
         - $ref: '#/components/messages/authenticate__pub'
-        - $ref: '#/components/messages/macrosTrigger__pub'
-        - $ref: '#/components/messages/macrosRequest__pub'
-        - $ref: '#/components/messages/looksTrigger__pub'
-        - $ref: '#/components/messages/looksRequest__pub'
         - $ref: '#/components/messages/libraryRequest__pub'
         - $ref: '#/components/messages/playlistRequestAll__pub'
         - $ref: '#/components/messages/presentationRequest__pub'
@@ -2904,6 +2900,10 @@ channels:
         - $ref: '#/components/messages/stageDisplaySetIndex__pub'
         - $ref: '#/components/messages/stageDisplaySets__pub'
         - $ref: '#/components/messages/stageDisplayChangeLayout__pub'
+        - $ref: '#/components/messages/macrosTrigger__pub'
+        - $ref: '#/components/messages/macrosRequest__pub'
+        - $ref: '#/components/messages/looksTrigger__pub'
+        - $ref: '#/components/messages/looksRequest__pub'
         - $ref: '#/components/messages/clearAll__pub'
         - $ref: '#/components/messages/clearText__pub'
         - $ref: '#/components/messages/clearProps__pub'
@@ -2916,8 +2916,6 @@ channels:
       message:
         oneOf:
         - $ref: '#/components/messages/authenticate__sub'
-        - $ref: '#/components/messages/macrosRequest__sub'
-        - $ref: '#/components/messages/looksRequest__sub'
         - $ref: '#/components/messages/libraryRequest__sub'
         - $ref: '#/components/messages/playlistRequestAll__sub'
         - $ref: '#/components/messages/presentationRequest__sub'
@@ -2941,6 +2939,8 @@ channels:
         - $ref: '#/components/messages/stageDisplaySetIndex__sub'
         - $ref: '#/components/messages/stageDisplaySets__sub'
         - $ref: '#/components/messages/stageDisplayChangeLayout__sub'
+        - $ref: '#/components/messages/macrosRequest__sub'
+        - $ref: '#/components/messages/looksRequest__sub'
   /stagedisplay:
     publish:
       description: Send messages to the API

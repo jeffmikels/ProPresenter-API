@@ -9,6 +9,16 @@
 # As a result, I have written this document by hand, and have written
 # my own translator to convert this document into asyncapi format
 # to use its tools for documentation generation
+#
+#
+# TODO:
+#   - socialSendTweet
+#   - telestratorSettings
+#   - telestratorEndEditing
+#   - telestratorSet
+#   - telestratorUndo
+#   - telestratorNew
+
 asyncapi:
   asyncapi: '2.1.0'
   info:
@@ -712,118 +722,6 @@ channels:
           example: 
             {"controller":1,"authenticated":1,"error":"","majorVersion":7,"minorVersion":6,"action":"authenticate"}
       
-      # new items for 7.6
-      macrosTrigger:
-        summary: Trigger a Macro
-        description: |
-          Trigger a macro using `macroName`, `macroID`, or `macroIndex`, must have at least one.
-
-          If you send multiple identifier parameters, they are handled in the following order of precedence:
-          
-          1. macroID
-          2. macroName
-          3. macroIndex
-
-        message:
-          payload:
-            action: macrosTrigger
-            macroName:
-              type: string
-              optional: true
-              description: case-sensitive name of macro to trigger
-            macroID:
-              type: string
-              optional: true
-              description: internal ID of macro to trigger
-            macroIndex:
-              type: int
-              optional: true
-              description: zero-based index of macro to trigger
-
-      macrosRequest:
-        summary: Request a list of Pro7 Macros
-        message:
-          payload:
-            action: macrosRequest
-        response:
-          payload:
-            action: macrosRequest
-            macros:
-              type: list[pro7Macro]
-          example:
-            {
-              "action": "macrosRequest",
-              "macros": [
-                {
-                  "macroName": "<Case-sensitive name of Macro>",
-                  "macroID": "<Internal ID of Macro>",
-                  "macroColor": "<red> <green> <blue>",
-                  "macroIndex": <Zero-based index of Macro>
-                }
-              ]
-            }
-
-      looksTrigger:
-        summary: Trigger a Look
-        description: |
-          Trigger a look. Similar to triggering a Macro.
-
-          If you send multiple identifier parameters, they are handled in the following order of precedence:
-          
-          1. lookID
-          2. lookName
-          3. lookIndex
-
-        message:
-          payload:
-            action: looksTrigger
-            macroName:
-              type: string
-              optional: true
-              description: case-sensitive name of look to trigger
-            macroID:
-              type: string
-              optional: true
-              description: internal ID of look to trigger
-            macroIndex:
-              type: int
-              optional: true
-              description: zero-based index of look to trigger
-
-      looksRequest:
-        summary: Request a list of Pro7 Looks
-        description: Includes the currently active Look (activeLook)
-        message:
-          payload:
-            action: looksRequest
-        response:
-          payload:
-            action: looksRequest
-            looks:
-              type: list[pro7Look]
-            activeLook:
-              type: object
-              parameters:
-                lookName:
-                  type: string
-                lookID:
-                  type: string
-          example:
-            {
-              "action": "looksRequest",
-              "looks": [
-                {
-                  "lookName": "<Case-sensitive name of Look>",
-                  "lookID": "<Internal ID of Look>",
-                  "lookIndex": <Zero-based index of Look>
-                }
-              ],
-              "activeLook": {
-                "lookName": "<name>",
-                "lookID": "<identifier>"
-              }
-            }
-
       libraryRequest:
         summary: Get Library (all presentations)
         description: |
@@ -1487,7 +1385,119 @@ channels:
         response:
           type: stageDisplaySetsMessage
 
-      
+      # macros and looks
+      # new items for 7.6
+      macrosTrigger:
+        summary: Trigger a Macro
+        description: |
+          Trigger a macro using `macroName`, `macroID`, or `macroIndex`, must have at least one.
+
+          If you send multiple identifier parameters, they are handled in the following order of precedence:
+          
+          1. macroID
+          2. macroName
+          3. macroIndex
+
+        message:
+          payload:
+            action: macrosTrigger
+            macroName:
+              type: string
+              optional: true
+              description: case-sensitive name of macro to trigger
+            macroID:
+              type: string
+              optional: true
+              description: internal ID of macro to trigger
+            macroIndex:
+              type: int
+              optional: true
+              description: zero-based index of macro to trigger
+
+      macrosRequest:
+        summary: Request a list of Pro7 Macros
+        message:
+          payload:
+            action: macrosRequest
+        response:
+          payload:
+            action: macrosRequest
+            macros:
+              type: list[pro7Macro]
+          example:
+            {
+              "action": "macrosRequest",
+              "macros": [
+                {
+                  "macroName": "<Case-sensitive name of Macro>",
+                  "macroID": "<Internal ID of Macro>",
+                  "macroColor": "<red> <green> <blue>",
+                  "macroIndex": <Zero-based index of Macro>
+                }
+              ]
+            }
+
+      looksTrigger:
+        summary: Trigger a Look
+        description: |
+          Trigger a look. Similar to triggering a Macro.
+
+          If you send multiple identifier parameters, they are handled in the following order of precedence:
+          
+          1. lookID
+          2. lookName
+          3. lookIndex
+
+        message:
+          payload:
+            action: looksTrigger
+            macroName:
+              type: string
+              optional: true
+              description: case-sensitive name of look to trigger
+            macroID:
+              type: string
+              optional: true
+              description: internal ID of look to trigger
+            macroIndex:
+              type: int
+              optional: true
+              description: zero-based index of look to trigger
+
+      looksRequest:
+        summary: Request a list of Pro7 Looks
+        description: Includes the currently active Look (activeLook)
+        message:
+          payload:
+            action: looksRequest
+        response:
+          payload:
+            action: looksRequest
+            looks:
+              type: list[pro7Look]
+            activeLook:
+              type: object
+              parameters:
+                lookName:
+                  type: string
+                lookID:
+                  type: string
+          example:
+            {
+              "action": "looksRequest",
+              "looks": [
+                {
+                  "lookName": "<Case-sensitive name of Look>",
+                  "lookID": "<Internal ID of Look>",
+                  "lookIndex": <Zero-based index of Look>
+                }
+              ],
+              "activeLook": {
+                "lookName": "<name>",
+                "lookID": "<identifier>"
+              }
+            }
+
       # general control messages
       clearAll:
         summary: Clear All
@@ -1559,13 +1569,6 @@ channels:
             {"action":"clearToLogo"}
             
 
-    undocumented:
-      - socialSendTweet
-      - telestratorSettings
-      - telestratorEndEditing
-      - telestratorSet
-      - telestratorUndo
-      - telestratorNew
 
   stagedisplay:
     summary: Stage Display API
