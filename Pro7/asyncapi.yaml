@@ -120,13 +120,15 @@ components:
         r,g,b values are 0-1
       type: string
       examples:
-      - 0.5 0.8 1
+      - |-
+        0.5 0.8 1
     colorRGBA:
       description: |
         four space-delimited doubles describing the r,g,b,a values of a color from 0-1
       type: string
       examples:
-      - 0.5 0.8 1 0.5
+      - |-
+        0.5 0.8 1 0.5
     pro7Macro:
       type: object
       properties:
@@ -210,8 +212,12 @@ components:
         slideText:
           type: string
         slideImage:
-          description: |-
-            base64 encoded jpeg image
+          description: |
+            base64 encoded tiff image
+
+            NOTE: Pro6 would send this image as a jpeg image, but Pro7 uses TIFF.
+            However, as of 7.6, the content-type is misreported as image/jpeg, so browsers will
+            attempt to read it as a jpeg file and fail.
           type: string
         slideIndex:
           description: |
@@ -576,10 +582,11 @@ components:
         stageLayoutUUID: 753B184F-CCCD-42F9-A883-D1DF86E1FFB8
     stageDisplayFrameGeometry:
       description: "Frame Geometry is delivered in x,y coordinates based on screen percentages in the \nfollowing format:\n\
-        \n`{{upper_left_x_pct, upper_left_y_pct}, {lower_right_x_pct, lower_right_y_pct}}`\n"
+        \n`{{upper_left_x_pct, upper_left_y_pct}, {lower_right_x_pct, lower_right_y_pct}}`\n\nNOTE: this is not valid JSON,\
+        \ so don't parse it that way!\n"
       type: string
       examples:
-      - |-
+      - |
         {{0.025000000000000001, 0.37418655097613884}, {0.40000000000000002, 0.50108459869848154}}
     stageDisplayColor:
       description: |

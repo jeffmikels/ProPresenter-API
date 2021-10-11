@@ -1,5 +1,5 @@
-# This is a machine-readable format for the ProPresenter (6) Remote API
-# it was inspired by the asyncapi, but is written to keep commands
+# This is a machine-readable format for the ProPresenter Remote API
+# it was inspired by the AsyncAPI spec, but this dialect keeps commands
 # and responses together
 #
 # The advantage of asyncapi is that it is a standardized specification
@@ -18,7 +18,9 @@
 #   - telestratorSet
 #   - telestratorUndo
 #   - telestratorNew
+#
 
+# embedded asyncapi data
 asyncapi:
   asyncapi: '2.1.0'
   info:
@@ -93,13 +95,36 @@ asyncapi:
             *remote* for the remote control channel,
             or *stagedisplay* for the stage display channel
 
+
+# types will be converted into asyncapi schema objects
+# base/built-in types: bool, int, float, string, object, list
+# each base type will be converted to the proper type in the asyncapi spec
+# bool → boolean, int → integer, list → array
+#
+# typed lists may be described here as list[typename]
+#
+# NOTE: any type may refer to any other type without regard to order in this document
+#
+# types follow this structure
+#
+# typename:
+#   type: basetypename (if basetype is "object", define parameters below)
+#   description: commonmark markdown string
+#   example: full object example that properly matches the type
+#   parameters: 
+#     fieldname: 
+#       type: fieldtype @required unless a constant value has been supplied
+#       description: field description
+#       example: field example
+#       optional: boolean flag, defaults to false
+#       options: list of valid options, creates enum fields if present
+#     fieldnameWithConstantValue: value
+
 types:
-  # built-in types bool, int, float, string, object, list
-  # typed lists may be described as list[othertype]
 
   # general types
   boolint:
-    type: integer
+    type: int
     description: 0 for false, 1 for true, (in Pro6, these sometimes show up as strings)
 
   colorRGB:
@@ -107,15 +132,13 @@ types:
     description: |
       four space-delimited numbers describing the r,g,b values of a color
       r,g,b values are 0-1
-    example: |
-      "0.5 0.8 1"
+    example: "0.5 0.8 1"
 
   colorRGBA:
     type: string
     description: |
       four space-delimited doubles describing the r,g,b,a values of a color from 0-1
-    example: |
-      "0.5 0.8 1 0.5"
+    example: "0.5 0.8 1 0.5"
 
   pro7Macro:
     type: object
@@ -180,13 +203,18 @@ types:
       slideNotes:
         type: string
       slideAttachmentMask:
-        type: integer
+        type: int
         description: unknown
       slideText:
         type: string
       slideImage:
         type: string
-        description: base64 encoded jpeg image
+        description: |
+          base64 encoded tiff image
+
+          NOTE: Pro6 would send this image as a jpeg image, but Pro7 uses TIFF.
+          However, as of 7.6, the content-type is misreported as image/jpeg, so browsers will
+          attempt to read it as a jpeg file and fail.
       slideIndex:
         type: string
         description: |
@@ -197,7 +225,7 @@ types:
 
           In Pro6, it would transmit the actual slideIndex of this slide in the presentation.
       slideTransitionType:
-        type: integer
+        type: int
         description: |
           `-1` for default transition or another number for a different transition
       slideLabel:
@@ -223,7 +251,7 @@ types:
       presentationHasTimeline:
         type: boolint
       presentationDestination:
-        type: integer
+        type: int
         description: The output this presentation is assigned to.
       presentationCurrentLocation:
         type: itemLocation
@@ -238,7 +266,7 @@ types:
     parameters:
       action: presentationTriggerIndex
       slideIndex:
-        type: integer
+        type: int
       presentationPath:
         type: itemLocation
         description: |
@@ -246,7 +274,7 @@ types:
           playlist location (i.e. `0:0`), but if it was selected from the Library directly,
           the path value will always be the *basename* only.
       presentationDestination:
-        type: integer
+        type: int
         description: refers to the destination screen of the current presentation.
 
   # playlist types for audio or presentation playlists
@@ -315,7 +343,7 @@ types:
       - empty times are `"00:00:00.00"`
 
   clockType:
-    type: integer
+    type: int
     options:
       - 0
       - 1
@@ -329,17 +357,17 @@ types:
     description: UNKNOWN / TODO
     parameters:
       clockMillisecondFormat:
-        type: integer
+        type: int
       clockWallTimeFormat:
         type: bool
       clockSecondFormat:
-        type: integer
+        type: int
       clockTimePeriodFormat:
-        type: integer
+        type: int
       clockMinuteFormat:
-        type: integer
+        type: int
       clockHourForma":
-        type: integer
+        type: int
     example:
       clockMillisecondFormat: 2
       clockWallTimeFormat: true
@@ -372,7 +400,7 @@ types:
         type: bool
         description: indicates if clock should keep running after it hits the endtime.
       clockTimePeriodFormat:
-        type: integer
+        type: int
         description: UNKNOWN / TODO
       clockFormat:
         type: clockFormat
@@ -383,7 +411,7 @@ types:
       - 
         type: clockType
       - 
-        type: integer
+        type: int
         description: most recently changed value as indicated by the `action`
       -
         type: clockTimeString
@@ -401,7 +429,7 @@ types:
         type: boolint
         description: same as clockState in clockDetail, but given as a boolint
       clockIndex:
-        type: integer
+        type: int
         description: zero-based clock index, clock lists are in a stable order
 
   clockCurrentTimesMessage:
@@ -411,8 +439,7 @@ types:
       action: clockCurrentTimes
       clockTimes:
         type: list[clockTimeString]
-    example: |
-      `{"action":"clockCurrentTimes","clockTimes":["0:10:00","--:--:--","13:52:23"]}`
+    example: {"action":"clockCurrentTimes","clockTimes":["0:10:00","--:--:--","13:52:23"]}
   
   # message types
   screenMessage:
@@ -474,8 +501,10 @@ types:
       following format:
 
       `{{upper_left_x_pct, upper_left_y_pct}, {lower_right_x_pct, lower_right_y_pct}}`
-    example: '{{0.025000000000000001, 0.37418655097613884}, {0.40000000000000002,
-        0.50108459869848154}}'
+
+      NOTE: this is not valid JSON, so don't parse it that way!
+    example: >
+      {{0.025000000000000001, 0.37418655097613884}, {0.40000000000000002, 0.50108459869848154}}
 
   stageDisplayColor:
     type: string
@@ -491,7 +520,7 @@ types:
       ufr:
         type: stageDisplayFrameGeometry
       mde:
-        type: integer
+        type: int
         options: [0, 1, 2]
         description: |
           * frame mode is indicated by `mde`
@@ -499,19 +528,19 @@ types:
             * mode 1: text
             * mode 2: live slide
       tAl:
-        type: integer
+        type: int
         description: Always seems to be `2`
       tCl:
         type: stageDisplayColor
         description: frame text color
       tSz:
-        type: integer
+        type: int
         description: Frame font size
       nme:
         type: string
         description: Name of this frame
       typ:
-        type: integer
+        type: int
         options: [1,2,3,4,5,6,7,8,9]
         description: |
           * frame type is indicated by `typ` and determines what content goes in this frame
@@ -612,7 +641,7 @@ types:
     parameters:
       RVLiveStream_action: RVLiveStream_frameData
       RVLiveStream_frameDataLength:
-        type: integer
+        type: int
         description: byte count of this frame data
       RVLiveStream_frameData: 
         type: string
@@ -631,7 +660,7 @@ types:
       stageScreens:
         type: list[stageScreenItem]
       stageDisplayIndex:
-        type: integer
+        type: int
         example: 4
       stageLayouts:
         type: list[stageLayoutInfo]
@@ -720,7 +749,14 @@ channels:
               type: int
               description: For ProPresenter 7.6, this is `6`
           example: 
-            {"controller":1,"authenticated":1,"error":"","majorVersion":7,"minorVersion":6,"action":"authenticate"}
+            {
+              "controller": 1,
+              "authenticated": 1,
+              "error": "",
+              "majorVersion": 7,
+              "minorVersion": 6,
+              "action": "authenticate"
+            }
       
       libraryRequest:
         summary: Get Library (all presentations)
@@ -828,7 +864,7 @@ channels:
             presentationPath:
               type: itemLocation
             presentationSlideQuality:
-              type: integer
+              type: int
               optional: true
           example: 
             {
@@ -912,7 +948,7 @@ channels:
             presentation:
               type: presentation
             presentationDestination:
-              type: integer
+              type: int
               description: Which output is this presentation assigned to?
 
       presentationSlideIndex:
@@ -1133,7 +1169,7 @@ channels:
           payload:
             action: clockStart
             clockIndex:
-              type: integer
+              type: int
         response:
           type: clockStartStopMessage
 
@@ -1144,7 +1180,7 @@ channels:
           payload:
             action: clockStop
             clockIndex:
-              type: integer
+              type: int
         response:
           type: clockStartStopMessage
 
@@ -1155,7 +1191,7 @@ channels:
           payload:
             action: clockReset
             clockIndex:
-              type: integer
+              type: int
         response:
           payload:
             action: clockResetIndex
@@ -1176,19 +1212,19 @@ channels:
           payload:
             action: clockUpdate
             clockIndex:
-              type: integer
+              type: int
               example: 1
             clockType:
-              type: integer
+              type: int
               example: 0
             clockTime:
               type: string
               example: 09:04:00
             clockOverrun:
-              type: integer
+              type: int
               example: 0
             clockIsPM:
-              type: integer
+              type: int
               example: 1
             clockName:
               type: string
@@ -1294,13 +1330,26 @@ channels:
           payload:
             action: messageSend
             messageIndex:
-              type: integer
+              type: int
             messageKeys:
               type: list[string]
             messageValues:
               type: list[string]
         example: 
-          {"action":"messageSend","messageIndex":0,"messageKeys":["key1","key2","..."],"messageValues":["Value1","Value2","..."]}
+          {
+            "action":"messageSend",
+            "messageIndex":0,
+            "messageKeys": [
+              "key1",
+              "key2",
+              "..."
+            ],
+            "messageValues": [
+              "Value1",
+              "Value2",
+              "..."
+            ]
+          }
           
 
       messageHide:
@@ -1310,7 +1359,7 @@ channels:
           payload:
             action: messageHide
             messageIndex:
-              type: integer
+              type: int
               description: accepts string values too.
 
       # stage display control messages
@@ -1324,7 +1373,10 @@ channels:
               type: string
               example: Type a Message Here
           example: 
-            {"action":"stageDisplaySendMessage","stageDisplayMessage":"Type a Message Here"}
+            {
+              "action":"stageDisplaySendMessage",
+              "stageDisplayMessage":"Type a Message Here"
+            }
 
       stageDisplayHideMessage:
         summary: Hide Stage Display Message
@@ -1343,7 +1395,7 @@ channels:
           payload:
             action: stageDisplaySetIndex
             stageDisplayIndex:
-              type: integer
+              type: int
               example: 0
           example: 
             {"action":"stageDisplaySetIndex","stageDisplayIndex":0}
@@ -1352,7 +1404,7 @@ channels:
           payload:
             action: stageDisplaySetIndex
             stageDisplayIndex:
-              type: integer
+              type: int
               example: 0
           example: 
             {"action":"stageDisplaySetIndex","stageDisplayIndex":0}
@@ -1380,7 +1432,11 @@ channels:
             stageScreenUUID:
               type: string 
           example:
-            {"action":"stageDisplayChangeLayout","stageLayoutUUID":"687e061b-c3fc-48a7-be8c-40837b622fed","stageScreenUUID":"8e383232-2a89-4802-a507-93c09642fa68"}
+            {
+              "action":"stageDisplayChangeLayout",
+              "stageLayoutUUID":"687e061b-c3fc-48a7-be8c-40837b622fed",
+              "stageScreenUUID":"8e383232-2a89-4802-a507-93c09642fa68"
+            }
 
         response:
           type: stageDisplaySetsMessage
