@@ -1651,6 +1651,9 @@ channels:
       In ProPresenter 6, the response will be the raw bytes of a jpeg image but the 
       response will *NOT* contain the proper Content-Type of `image/jpeg`.
 
+      In ProPresenter 7, the response will be the raw bytes of a TIFF image, but the
+      response will INCORRECTLY claim it is a Content-Type of `image/jpeg`.
+
 
     # any one of the stagedisplay frame values can be sent independently
     # however, cs, csn, ns, nsn are always sent together with an fv message
