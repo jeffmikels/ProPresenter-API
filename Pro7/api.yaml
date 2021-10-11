@@ -1630,7 +1630,7 @@ channels:
     summary: Stage Display API
     protocol: 610
     description: |
-      NOTE; Pro7 maintains the same protocol number as Pro6: `610`
+      NOTE: Pro7 maintains the same protocol number as Pro6: `610`
 
       The `stagedisplay` channel carries all the
       information from the "ProPresenter Stage" app

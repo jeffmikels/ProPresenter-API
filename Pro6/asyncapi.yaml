@@ -2386,7 +2386,25 @@ components:
 channels:
   /remote:
     publish:
-      description: Send messages to the API
+      summary: Remote Control
+      description: 'Send messages to the API
+
+
+        The `remote` channel carries all the
+
+        information from the "ProPresenter Remote" app
+
+
+        CONNECT WITH:
+
+
+        ```
+
+        ws://[hostname]:[port]/remote
+
+        ```
+
+        '
       message:
         oneOf:
         - $ref: '#/components/messages/authenticate__pub'
@@ -2431,7 +2449,25 @@ channels:
         - $ref: '#/components/messages/clearTelestrator__pub'
         - $ref: '#/components/messages/clearToLogo__pub'
     subscribe:
-      description: Receive messages from the API
+      summary: Remote Control
+      description: 'Receive messages from the API
+
+
+        The `remote` channel carries all the
+
+        information from the "ProPresenter Remote" app
+
+
+        CONNECT WITH:
+
+
+        ```
+
+        ws://[hostname]:[port]/remote
+
+        ```
+
+        '
       message:
         oneOf:
         - $ref: '#/components/messages/authenticate__sub'
@@ -2459,7 +2495,12 @@ channels:
         - $ref: '#/components/messages/stageDisplaySets__sub'
   /stagedisplay:
     publish:
-      description: Send messages to the API
+      summary: Stage Display API
+      description: "Send messages to the API\n\nThe `stagedisplay` channel carries all the\ninformation from the \"ProPresenter\
+        \ Stage\" app\n\nCONNECT WITH:\n\n```\nws://[hostname]:[port]/stagedisplay\n```\n\nProPresenter also provides a mechanism\
+        \ for getting a high quality thumbnail image\nfor any slide or chord chart in the current presentation:\n\n```\nhttp://PROPRESENTER_IP:PROPRESENTER_PORT/stage/image/SLIDE_UID\n\
+        ```\n\nIn ProPresenter 6, the response will be the raw bytes of a jpeg image but the \nresponse will *NOT* contain\
+        \ the proper Content-Type of `image/jpeg`.\n"
       message:
         oneOf:
         - $ref: '#/components/messages/ath__pub'
@@ -2467,7 +2508,12 @@ channels:
         - $ref: '#/components/messages/psl__pub'
         - $ref: '#/components/messages/fv__pub'
     subscribe:
-      description: Receive messages from the API
+      summary: Stage Display API
+      description: "Receive messages from the API\n\nThe `stagedisplay` channel carries all the\ninformation from the \"ProPresenter\
+        \ Stage\" app\n\nCONNECT WITH:\n\n```\nws://[hostname]:[port]/stagedisplay\n```\n\nProPresenter also provides a mechanism\
+        \ for getting a high quality thumbnail image\nfor any slide or chord chart in the current presentation:\n\n```\nhttp://PROPRESENTER_IP:PROPRESENTER_PORT/stage/image/SLIDE_UID\n\
+        ```\n\nIn ProPresenter 6, the response will be the raw bytes of a jpeg image but the \nresponse will *NOT* contain\
+        \ the proper Content-Type of `image/jpeg`.\n"
       message:
         oneOf:
         - $ref: '#/components/messages/ath__sub'

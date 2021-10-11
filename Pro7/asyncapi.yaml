@@ -2869,7 +2869,34 @@ components:
 channels:
   /remote:
     publish:
-      description: Send messages to the API
+      summary: Remote Control
+      description: 'Send messages to the API
+
+
+        The `remote` channel carries all the
+
+        information from the "ProPresenter Remote" app
+
+
+        CONNECT WITH:
+
+
+        ```
+
+        ws://[hostname]:[port]/remote
+
+        ```
+
+
+        -   The value of the protocol parameter is used to perform a version check on the remote client.
+
+        -   ProPresenter 7.0 - 7.4.1 checks for a value here of at least 700 - otherwise it denies authentication and returns
+        "Protocol out of date. Update application"
+
+        -   ProPresenter 7.4.2 and later checks for a value here of at least 701 - otherwise it denies authentication and
+        returns "Protocol out of date. Update application"
+
+        '
       message:
         oneOf:
         - $ref: '#/components/messages/authenticate__pub'
@@ -2919,7 +2946,34 @@ channels:
         - $ref: '#/components/messages/clearTelestrator__pub'
         - $ref: '#/components/messages/clearToLogo__pub'
     subscribe:
-      description: Receive messages from the API
+      summary: Remote Control
+      description: 'Receive messages from the API
+
+
+        The `remote` channel carries all the
+
+        information from the "ProPresenter Remote" app
+
+
+        CONNECT WITH:
+
+
+        ```
+
+        ws://[hostname]:[port]/remote
+
+        ```
+
+
+        -   The value of the protocol parameter is used to perform a version check on the remote client.
+
+        -   ProPresenter 7.0 - 7.4.1 checks for a value here of at least 700 - otherwise it denies authentication and returns
+        "Protocol out of date. Update application"
+
+        -   ProPresenter 7.4.2 and later checks for a value here of at least 701 - otherwise it denies authentication and
+        returns "Protocol out of date. Update application"
+
+        '
       message:
         oneOf:
         - $ref: '#/components/messages/authenticate__sub'
@@ -2950,7 +3004,14 @@ channels:
         - $ref: '#/components/messages/looksRequest__sub'
   /stagedisplay:
     publish:
-      description: Send messages to the API
+      summary: Stage Display API
+      description: "Send messages to the API\n\nNOTE: Pro7 maintains the same protocol number as Pro6: `610`\n\nThe `stagedisplay`\
+        \ channel carries all the\ninformation from the \"ProPresenter Stage\" app\n\nCONNECT WITH:\n\n```\nws://[hostname]:[port]/stagedisplay\n\
+        ```\n\nProPresenter also provides a mechanism for getting a high quality thumbnail image\nfor any slide or chord chart\
+        \ in the current presentation:\n\n```\nhttp://PROPRESENTER_IP:PROPRESENTER_PORT/stage/image/SLIDE_UID\n```\n\nIn ProPresenter\
+        \ 6, the response will be the raw bytes of a jpeg image but the \nresponse will *NOT* contain the proper Content-Type\
+        \ of `image/jpeg`.\n\nIn ProPresenter 7, the response will be the raw bytes of a TIFF image, but the\nresponse will\
+        \ INCORRECTLY claim it is a Content-Type of `image/jpeg`.\n"
       message:
         oneOf:
         - $ref: '#/components/messages/ath__pub'
@@ -2958,7 +3019,14 @@ channels:
         - $ref: '#/components/messages/psl__pub'
         - $ref: '#/components/messages/fv__pub'
     subscribe:
-      description: Receive messages from the API
+      summary: Stage Display API
+      description: "Receive messages from the API\n\nNOTE: Pro7 maintains the same protocol number as Pro6: `610`\n\nThe `stagedisplay`\
+        \ channel carries all the\ninformation from the \"ProPresenter Stage\" app\n\nCONNECT WITH:\n\n```\nws://[hostname]:[port]/stagedisplay\n\
+        ```\n\nProPresenter also provides a mechanism for getting a high quality thumbnail image\nfor any slide or chord chart\
+        \ in the current presentation:\n\n```\nhttp://PROPRESENTER_IP:PROPRESENTER_PORT/stage/image/SLIDE_UID\n```\n\nIn ProPresenter\
+        \ 6, the response will be the raw bytes of a jpeg image but the \nresponse will *NOT* contain the proper Content-Type\
+        \ of `image/jpeg`.\n\nIn ProPresenter 7, the response will be the raw bytes of a TIFF image, but the\nresponse will\
+        \ INCORRECTLY claim it is a Content-Type of `image/jpeg`.\n"
       message:
         oneOf:
         - $ref: '#/components/messages/ath__sub'

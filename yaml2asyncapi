@@ -146,6 +146,7 @@ with open(source, 'r') as f:
   data = yaml.load(t, Loader=Loader)
 
 print('PROCESSING...')
+
 # include root level asyncapi data
 output = data['asyncapi']
 output.update({'components': {'schemas': {}, 'messages': {}}, 'channels': {}})
@@ -168,15 +169,19 @@ for typename in data['types']:
 # create pub/sub messages from the message / response payloads
 for channel in ['remote', 'stagedisplay']:
   channelPath = '/'+channel
+  summary = data['channels'][channel]['summary']
+  description = data['channels'][channel]['description']
   output['channels'][channelPath] = {
       'publish': {
-          'description': 'Send messages to the API',
+          'summary': summary,
+          'description': f'Send messages to the API\n\n{description}',
           'message': {
               'oneOf': []
           }
       },
       'subscribe': {
-          'description': 'Receive messages from the API',
+          'summary': summary,
+          'description': f'Receive messages from the API\n\n{description}',
           'message': {
               'oneOf': []
           }
