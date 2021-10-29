@@ -1575,6 +1575,26 @@ channels:
             {"action":"clearText"}
             
 
+      clearMessages:
+        summary: Clear Messages
+        description: ''
+        message:
+          payload:
+            action: clearMessages
+          example: 
+            {"action":"clearMessages"}
+
+
+      clearAnnouncements:
+        summary: Clear Announcements
+        description: ''
+        message:
+          payload:
+            action: clearAnnouncements
+          example: 
+            {"action":"clearAnnouncements"}
+
+
       clearProps:
         summary: Clear Props
         description: ''

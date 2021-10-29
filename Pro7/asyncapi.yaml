@@ -2410,6 +2410,44 @@ components:
       examples:
       - payload:
           action: clearText
+    clearMessages__pub:
+      name: clearMessages__pub
+      title: clearMessages (publish)
+      summary: Clear Messages
+      description: |2-
+
+
+        NO RESPONSE
+      payload:
+        type: object
+        properties:
+          action:
+            const: clearMessages
+        required:
+        - action
+        additionalProperties: false
+      examples:
+      - payload:
+          action: clearMessages
+    clearAnnouncements__pub:
+      name: clearAnnouncements__pub
+      title: clearAnnouncements (publish)
+      summary: Clear Announcements
+      description: |2-
+
+
+        NO RESPONSE
+      payload:
+        type: object
+        properties:
+          action:
+            const: clearAnnouncements
+        required:
+        - action
+        additionalProperties: false
+      examples:
+      - payload:
+          action: clearAnnouncements
     clearProps__pub:
       name: clearProps__pub
       title: clearProps (publish)
@@ -2940,6 +2978,8 @@ channels:
         - $ref: '#/components/messages/looksRequest__pub'
         - $ref: '#/components/messages/clearAll__pub'
         - $ref: '#/components/messages/clearText__pub'
+        - $ref: '#/components/messages/clearMessages__pub'
+        - $ref: '#/components/messages/clearAnnouncements__pub'
         - $ref: '#/components/messages/clearProps__pub'
         - $ref: '#/components/messages/clearAudio__pub'
         - $ref: '#/components/messages/clearVideo__pub'
