@@ -1,5 +1,33 @@
 # ProPresenter-API
 
+## 7.9 UPDATE & PUBLIC API
+
+The upcoming 7.9 release of ProPresenter will include an officially supported public API.
+
+The official documentation page is here:
+
+https://renewedvision.com/propresenter/api/
+
+The full auto-generated Swagger HTML is a bit easier to navigate, and it is here:
+
+https://renewedvision.com/api_spec/index.html
+
+And, the actual source OPENAPI spec document (JS) is here:
+
+https://renewedvision.com/api_spec/spec.js
+
+But I'm mirroring it here as a formatted JSON document too.
+
+[pro7.9.openapi-spec.json](https://github.com/jeffmikels/ProPresenter-API/blob/master/pro7.9.openapi-spec.json)
+
+## NETWORK LINK
+
+For information on the ProPresenter Network Link protocol, see my other repo here:
+
+https://github.com/jeffmikels/pro_presenter_network_link_tools
+
+## REVERSE-ENGINEERED STAGE DISPLAY & REMOTE DOCUMENTATION
+
 Documenting RenewedVision's undocumented network protocols with examples
 
 See below for changes to this repository:
