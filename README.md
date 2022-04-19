@@ -14,7 +14,7 @@ https://renewedvision.com/api_spec/index.html
 
 And, the actual source OPENAPI spec document (JS) is here:
 
-https://renewedvision.com/api_spec/spec.js
+https://renewedvision.com/api_spec/swagger.json
 
 But I'm mirroring it here as a formatted JSON document too.
 
